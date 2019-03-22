@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# @crpyotbr 2019
+# @cryptobr 2019
 # Expand volumes for T2 Linux instance
 # Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html
 
