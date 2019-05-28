@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # @cryptobr 2019
+# @f1r3m4n 2019
 # Expand volumes for T2 Linux instance
 # Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html
+# Do not forget to install this package -> $ yum install cloud-utils-growpart
 
 echo "Volumes Instances"
 echo ""
