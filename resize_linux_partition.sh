@@ -21,7 +21,7 @@ sudo growpart /dev/$NAME $NUMBER
 # For ext2, ext3 and ext4
 sudo resize2fs /dev/$NAME$NUMBER
 # For XFS
-sudo xfs_growfs /dev/$NAME$NUMBER
+sudo xfs_growfs -d /dev/$NAME$NUMBER
 echo ""
 echo "Show new size partition"
 df -h
