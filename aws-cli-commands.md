@@ -10,7 +10,11 @@ $ aws s3 rm s3://<yourbucket> --recursive
 ```
 
 ## Cloudfront
+**List Cloudfront distributions**
+```sh
+$ aws cloudfront list-distributions
+```
 **Create invalidation full for Cloudfront**
 ```sh
-$ aws cloudfront create-invalidation --distribution-id EDFDVBD6EXAMPLE --paths "/*"
+$ aws cloudfront create-invalidation --distribution-id <YourDistributionID> --paths "/*"
 ```
