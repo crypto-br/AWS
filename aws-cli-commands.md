@@ -3,11 +3,11 @@
 
 **Sync local directory with bucket S3 and set public read permission**
 ```sh
-$ aws s3 sync . s3://yourbucket --acl public-read
+$ aws s3 sync . s3://<yourbucket> --acl public-read
 ```
 **Remove directory recursive**
 ```sh
-$ aws s3 rm s3://mybucket/ --recursive
+$ aws s3 rm s3://<yourbucket> --recursive
 ```
 
 ## Cloudfront
