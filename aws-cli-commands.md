@@ -1,4 +1,5 @@
 # AWS-CLI Commands
+For more datails: [AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/index.html)
 ## S3
 **Sync local directory with bucket S3 and set public read permission**
 ```sh
