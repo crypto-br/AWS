@@ -6,6 +6,8 @@
 # Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html
 # Do not forget to install this package -> $ yum install cloud-utils-growpart xfsprogs
 
+# Install dependencies
+sudo yum install -y cloud-utils-growpart xfsprogs
 echo "Volumes Instances"
 echo ""
 lsblk
@@ -18,10 +20,15 @@ echo "Expand partition..."
 sleep 1
 echo ""
 sudo growpart /dev/$NAME $NUMBER
-# For ext2, ext3 and ext4
-sudo resize2fs /dev/$NAME$NUMBER
-# For XFS
-sudo xfs_growfs -d /dev/$NAME$NUMBER
+# Select File System
+echo "Enter 1 for (ext2,ext3,ext4) or 2 for (XFS):"
+read fs
+if [ $fs -eq 1 ]
+then
+        sudo resize2fs /dev/$NAME$NUMBER
+else
+        sudo xfs_growfs -d /dev/$NAME$NUMBER
+fi
 echo ""
 echo "Show new size partition"
 df -h
