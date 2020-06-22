@@ -11,7 +11,11 @@ $ aws s3 rm s3://<yourbucket> --recursive
 ```
 **Sync bucket S3 with local directory and filter extension**
 ```sh
- $ aws s3 sync s3://YOUR_BUCKET LOCAL_PATH --exclude "*" --include "*.jpg"
+ $ aws s3 sync s3://YOUR_BUCKET/ LOCAL_PATH --exclude "*" --include "*.jpg"
+```
+**Sync bucket S3 with local directory and filter extension recursive**
+```sh
+aws s3 cp . s3://YOUR_BUCKE/ LOCAL_PATH --recursive --exclude "*" --include "*.jpg"
 ```
 ## Cloudfront
 **List Cloudfront distributions**
