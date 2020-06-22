@@ -9,7 +9,10 @@ $ aws s3 sync . s3://<yourbucket> --acl public-read
 ```sh
 $ aws s3 rm s3://<yourbucket> --recursive
 ```
-
+**Sync bucket S3 with local directory and filter extension**
+```sh
+ $ aws s3 sync s3://YOUR_BUCKET LOCAL_PATH --exclude "*" --include "*.jpg"
+```
 ## Cloudfront
 **List Cloudfront distributions**
 ```sh
