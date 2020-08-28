@@ -17,6 +17,11 @@ $ aws s3 rm s3://<yourbucket> --recursive
 ```sh
 aws s3 sync s3://YOUR_BUCKE/ LOCAL_PATH --recursive --exclude "*" --include "*.jpg"
 ```
+**Show last file add on S3**
+```sh
+aws s3 ls $YOUR_BUCKET --recursive | sort | tail -n 1 | awk '{print $4}'
+```
+
 ## Cloudfront
 **List Cloudfront distributions**
 ```sh
