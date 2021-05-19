@@ -8,4 +8,4 @@ Scripts for support in day-to-day situations of an AWS environment manager
 read [aws-cli-commands.md](https://github.com/crypto-br/AWS/blob/master/aws-cli-commands.md)
 
 **- Script for resize you linux partition:**
-read [Resize Linux Partition](https://github.com/crypto-br/AWS/blob/master/Resize_Linux_partition/resize_linux_partition.sh)
+read [Resize Linux Partition](https://github.com/crypto-br/AWS/blob/master/Resize_Linux_partition/resize_linux_partition.sh), for more details [AWS Expanded](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html)
