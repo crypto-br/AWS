@@ -12,3 +12,6 @@ read [Resize Linux Partition](https://github.com/crypto-br/AWS/blob/master/Resiz
 
 **- Json to give permission to a specific bucket:**
 read [S3 Permission](https://github.com/crypto-br/AWS/blob/master/S3ResourcePermission.json)
+
+**- Script for configure OpenVPN Server on Amazon Linux 2:**
+read [OpenVPN Server](https://github.com/crypto-br/AWS/tree/master/EC2_OpenVPN_Server/readme.md)
