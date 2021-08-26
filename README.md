@@ -15,3 +15,6 @@ read [S3 Permission](https://github.com/crypto-br/AWS/blob/master/S3ResourcePerm
 
 **- Script for configure OpenVPN Server on Amazon Linux 2:**
 read [OpenVPN Server](https://github.com/crypto-br/AWS/tree/master/EC2_OpenVPN_Server/readme.md)
+
+**- DynamoDB exemples:**
+read [Get results with filter key](https://github.com/crypto-br/AWS/tree/master/dynamoDB/getValueWithFilter.py)
