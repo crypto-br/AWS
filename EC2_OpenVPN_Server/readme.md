@@ -13,3 +13,5 @@ $ chmod +x configure_server.sh
 $ sudo ./configure_server.sh
 ```
 **Now, get client file .ovpn in /root and run in your client device**
+
+**For create new client, just run script again and select option "New Client"**
