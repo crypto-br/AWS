@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2013 Nyr. Released under the MIT License.
 #
-# Custom by: @cryptobr for Amazon Linux
+# Custom by: @cryptobr for Amazon Linux - 2021
 
 # Install epel repository
 sudo amazon-linux-extras install epel -y
