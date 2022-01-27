@@ -2,7 +2,7 @@
 
 **Download configuration script**
 ```sh
-$ wget https://github.com/crypto-br/AWS/blob/master/EC2_OpenVPN_Server/configure_server.sh
+$ https://raw.githubusercontent.com/crypto-br/AWS/master/EC2_OpenVPN_Server/configure_server.sh
 ```
 **Set execute permission**
 ```sh
