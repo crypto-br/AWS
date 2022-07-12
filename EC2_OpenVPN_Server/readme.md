@@ -31,3 +31,9 @@ push "redirect-gateway def1 bypass-dhcp"
 ```sh
 push "route Network NetMask"
 ```
+
+**Stop/Star OpenVPN Service**
+```sh
+$ sudo service openvpn-server@server.service stop or start
+```
+
