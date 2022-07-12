@@ -17,3 +17,17 @@ $ sudo ./configure_server.sh
 **For create new client, just run script again and select option "New Client"**
 
 [Download](https://openvpn.net/community-downloads/) Client OpenVPN for your O.S
+
+**For remove default gateway or add new routes, edit this file**
+```sh
+$ sudo vim /etc/openvpn/server/server.conf
+```
+
+**Remove or comment this line for remove default gateway**
+```sh
+push "redirect-gateway def1 bypass-dhcp"
+```
+**Add new route add:**
+```sh
+push "route Network NetMask"
+```
