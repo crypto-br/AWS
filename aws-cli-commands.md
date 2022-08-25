@@ -31,3 +31,14 @@ $ aws cloudfront list-distributions
 ```sh
 $ aws cloudfront create-invalidation --distribution-id <YourDistributionID> --paths "/*"
 ```
+
+## ECS
+**List Tasks
+```sh
+$ aws ecs list-task-definitions
+```
+
+**Run Tasks with Fargate
+```sh
+$ aws ecs run-task --cluster YourCluster --task-definition YourTaskDefinition:1 --count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-YourSubnet],securityGroups=[sg-YourSG]}" --region <YourRegion>
+```
