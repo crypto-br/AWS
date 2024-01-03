@@ -42,3 +42,9 @@ $ aws ecs list-task-definitions
 ```sh
 $ aws ecs run-task --cluster YourCluster --task-definition YourTaskDefinition:1 --count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-YourSubnet],securityGroups=[sg-YourSG]}" --region <YourRegion>
 ```
+
+## KMS
+**Delete key**
+```sh
+$ aws kms schedule-key-deletion --key-id key_id --pending-window-in-days 7
+```
