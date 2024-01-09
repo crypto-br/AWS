@@ -6,9 +6,9 @@
 #
 # Custom by: @cryptobr for Amazon Linux - 2023
 
-## necessary add --nocheckgpg in instalation serives on fedroa or AmazonLinux 2023 line
+## necessary add --nocheckgpg in instalation serives on Amazon Linux 2023 in line 186
 
-# Install epel repository
+# Install Fedroa 39 repository
 sudo dnf config-manager --add-repo http://mirror.usi.edu/pub/fedora/linux/releases/39/Everything/x86_64/os/
 
 # Install OpenVPN
