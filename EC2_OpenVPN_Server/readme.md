@@ -1,16 +1,22 @@
-# Install OpenVPN Server in Amazon Linux 2
+# Install OpenVPN Server in Amazon Linux 2 and Amazon Linux 2023
 
-**Download configuration script**
+**Download configuration script for Amazon Linux 2**
 ```sh
 $ wget  https://raw.githubusercontent.com/crypto-br/AWS/master/EC2_OpenVPN_Server/configure_server.sh
 ```
+**Download configuration script for Amazon Linux 2023**
+```sh
+$ wget  https://raw.githubusercontent.com/crypto-br/AWS/master/EC2_OpenVPN_Server/configure_server_amzn_2023.sh
+```
 **Set execute permission**
 ```sh
-$ chmod +x configure_server.sh
+$ chmod +x configure_server.sh # for Amazon Linux 2
+$ chmod +x configure_server_amzn_2023.sh # for Amazon Linux 2023
 ```
 **Run configuration script**
 ```sh
-$ sudo ./configure_server.sh
+$ sudo ./configure_server.sh # for Amazon Linux 2
+$ sudo ./configure_server_amzn_2023.sh # for Amazon Linux 2023
 ```
 **Now, get client file .ovpn in /root and run in your client device**
 
