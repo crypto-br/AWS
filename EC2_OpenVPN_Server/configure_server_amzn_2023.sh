@@ -12,7 +12,7 @@
 sudo dnf config-manager --add-repo http://mirror.usi.edu/pub/fedora/linux/releases/39/Everything/x86_64/os/
 
 # Install OpenVPN
-sudo yum install ovpn --nogpgcheck
+sudo dnf install ovpn --nogpgcheck
 
 # Discard stdin. Needed when running from an one-liner which includes a newline
 read -N 999999 -t 0.001
