@@ -18,3 +18,13 @@ read [OpenVPN Server](https://github.com/crypto-br/AWS/tree/master/EC2_OpenVPN_S
 
 **- DynamoDB exemples:**
 read [Get results with filter key](https://github.com/crypto-br/AWS/tree/master/dynamoDB/getValueWithFilter.py)
+
+## AWS - System manager
+**- SSH Session with AWS System Manager (aws-cli) :**
+read [ssh_access.md](https://github.com/crypto-br/AWS/blob/master/ssm/ssh_access.md)
+
+**- RDP Session with AWS System Manager :**
+read [rpd_access.md](https://github.com/crypto-br/AWS/blob/master/ssm/rdp_access.md)
+
+**- RDS Session with AWS System Manager (aws-cli) :**
+read [rds_access.md](https://github.com/crypto-br/AWS/blob/master/ssm/rds_access.md)
