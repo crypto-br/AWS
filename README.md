@@ -19,6 +19,9 @@ read [OpenVPN Server](https://github.com/crypto-br/AWS/tree/master/EC2_OpenVPN_S
 **- DynamoDB exemples:**
 read [Get results with filter key](https://github.com/crypto-br/AWS/tree/master/dynamoDB/getValueWithFilter.py)
 
+**- Install PostgreSQL 16.1 on Amazon Linux 2023:**
+read [Install psql16 to amzlinux 2023 (fedora based](https://github.com/crypto-br/AWS/blob/master/setup/install_psql16_amz_linux_2023.MD)
+
 ## AWS - System manager
 **- SSH Session with AWS System Manager (aws-cli) :**
 read [ssh_access.md](https://github.com/crypto-br/AWS/blob/master/ssm/ssh_access.md)
