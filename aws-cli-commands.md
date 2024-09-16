@@ -1,5 +1,18 @@
 # AWS-CLI Commands
 For more datails: [AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/index.html)
+## ECS
+**Get your task ARN**
+```sh
+TASK_ARN=$(aws ecs list-tasks --cluster YOUR_CLUSTER --service YOUR_SERVICE --region YOUR_REGION --output text --query 'taskArns[0]')
+```
+**Describe your task**
+```sh
+aws ecs describe-tasks --cluster YOUR_CLUSTER --region YOUR_REGION --tasks $TASK_ARN
+```
+**Run command for open interactive shell**
+```sh
+aws ecs execute-command --region YOUR_REGION --cluster YOUR_CLUSTER --task $TASK_ARN --container YOUR_CONTAINER_NAME --command "/bin/bash" --interactive
+```
 ## S3
 **Sync local directory with bucket S3 and set public read permission**
 ```sh
