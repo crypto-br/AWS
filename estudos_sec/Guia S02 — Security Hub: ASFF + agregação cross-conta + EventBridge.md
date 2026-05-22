@@ -1,9 +1,8 @@
-# Guia S02 — Security Hub: ASFF + agregação cross-conta + EventBridge
+# Guia 2 — Security Hub: ASFF + agregação cross-conta + EventBridge
 
-**Depende de:** S01 (GuardDuty — finding types + multi-conta)  
-**Próxima sessão:** S03 — Escalação de privilégios IAM (ofensivo)
+**Depende de:** Guia 1 (GuardDuty — finding types + multi-conta)  
+**Próxima sessão:** Guia 3 — Escalação de privilégios IAM (ofensivo)
 
-> **Correção em relação ao plano original:** A documentação AWS renomeou "aggregation Region" para **"home Region"** (o termo antigo ainda aparece em algumas chamadas de API, mas a UI e docs usam home Region). O plano usa o termo antigo — este guia usa o correto.
 
 ---
 
@@ -21,13 +20,13 @@
 
 ### 1.1 Por que o ASFF existe
 
-[FATO] Antes do Security Hub, cada serviço AWS de segurança (GuardDuty, Inspector, Macie, IAM Access Analyzer) gerava findings em formatos incompatíveis. O ASFF é o formato normalizado que o Security Hub usa para receber, processar e exportar todos os findings, independente da fonte.
+ Antes do Security Hub, cada serviço AWS de segurança (GuardDuty, Inspector, Macie, IAM Access Analyzer) gerava findings em formatos incompatíveis. O ASFF é o formato normalizado que o Security Hub usa para receber, processar e exportar todos os findings, independente da fonte.
 
-[FATO] O Security Hub processa findings usando o ASFF. Produtos externos (ferramentas de terceiros) que querem enviar findings para o Security Hub também devem seguir o ASFF.
+ O Security Hub processa findings usando o ASFF. Produtos externos (ferramentas de terceiros) que querem enviar findings para o Security Hub também devem seguir o ASFF.
 
 ### 1.2 Campos obrigatórios do ASFF
 
-[FATO] Um finding ASFF válido **deve** conter os seguintes campos:
+ Um finding ASFF válido **deve** conter os seguintes campos:
 
 ```json
 {
@@ -76,21 +75,21 @@ Mapeamento dos campos obrigatórios:
 Além dos obrigatórios, estes campos são altamente relevantes na prática:
 
 - **`Compliance`** — resultado de um controle de security standard. Valores: `PASSED`, `FAILED`, `WARNING`, `NOT_AVAILABLE`. Presente em findings gerados pelos próprios controles do Security Hub (não em findings vindos do GuardDuty).
-- **`Workflow`** — status de investigação. Valores: `NEW`, `NOTIFIED`, `SUPPRESSED`, `RESOLVED`. [FATO] Você atualiza este campo (via `BatchUpdateFindings`); o produto gerador (GuardDuty) não o altera.
+- **`Workflow`** — status de investigação. Valores: `NEW`, `NOTIFIED`, `SUPPRESSED`, `RESOLVED`.  Você atualiza este campo (via `BatchUpdateFindings`); o produto gerador (GuardDuty) não o altera.
 - **`RecordState`** — `ACTIVE` ou `ARCHIVED`. Produto gerador controla este campo.
 - **`FindingProviderFields`** — bloco que o produto gerador pode usar para campos proprietários sem poluir o namespace principal.
 - **`Remediation`** — instruções de remediação com URL de documentação.
 
 ### 1.4 Taxonomia de tipos: `Types`
 
-[FATO] O campo `Types` segue o formato hierárquico:
+ O campo `Types` segue o formato hierárquico:
 ```
 Namespace/Category/Classifier
 ```
 
 Exemplos de namespaces: `TTPs`, `Software and Configuration Checks`, `Effects`, `Sensitive Data Identifications`, `Unusual Behaviors`.
 
-[FATO] A taxonomia completa é documentada em: [Finding type taxonomy](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format-type-taxonomy.html)
+ A taxonomia completa é documentada em: [Finding type taxonomy](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format-type-taxonomy.html)
 
 ### 1.5 Como um finding GuardDuty é mapeado para o ASFF
 
@@ -111,9 +110,9 @@ Mapeamento de severidade:
 | 7.0 – 8.9 | `HIGH` |
 | 9.0 – 10.0 | `CRITICAL` |
 
-[FATO] O campo `Resources` no ASFF recebe o recurso afetado em formato padronizado — uma instância EC2 vira `{"Type": "AwsEc2Instance", "Id": "arn:..."}`, um usuário IAM vira `{"Type": "AwsIamUser", ...}`.
+ O campo `Resources` no ASFF recebe o recurso afetado em formato padronizado — uma instância EC2 vira `{"Type": "AwsEc2Instance", "Id": "arn:..."}`, um usuário IAM vira `{"Type": "AwsIamUser", ...}`.
 
-[FATO] O campo `ProductArn` para findings do GuardDuty é sempre:
+ O campo `ProductArn` para findings do GuardDuty é sempre:
 ```
 arn:aws:securityhub:<region>::product/aws/guardduty
 ```
@@ -126,7 +125,7 @@ arn:aws:securityhub:<region>::product/aws/guardduty
 
 ### 2.1 O conceito central: home region + linked regions
 
-[FATO] Cross-region aggregation replica dados do Security Hub de múltiplas regiões para uma única **home region** (antes chamada de "aggregation Region" — a API ainda usa o termo antigo em alguns lugares). A partir da home region você tem visão consolidada de todo o ambiente.
+ Cross-region aggregation replica dados do Security Hub de múltiplas regiões para uma única **home region** (antes chamada de "aggregation Region" — a API ainda usa o termo antigo em alguns lugares). A partir da home region você tem visão consolidada de todo o ambiente.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -149,17 +148,17 @@ arn:aws:securityhub:<region>::product/aws/guardduty
 
 ### 2.2 O que é replicado (e o que não é)
 
-[FATO] Dados replicados das linked regions para a home region:
+ Dados replicados das linked regions para a home region:
 - Findings (novos + atualizações)
 - Insights
 - Control compliance statuses
 - Security scores
 
-[FATO] A replicação é **bidirecional**: atualizações feitas na home region (ex: mudar `Workflow.Status` de um finding) são replicadas de volta para a linked region. Se houver conflito, a atualização mais recente ganha.
+ A replicação é **bidirecional**: atualizações feitas na home region (ex: mudar `Workflow.Status` de um finding) são replicadas de volta para a linked region. Se houver conflito, a atualização mais recente ganha.
 
-[FATO] Cross-region aggregation **não tem custo adicional** — a replicação de dados entre regiões não gera cobrança extra no Security Hub.
+ Cross-region aggregation **não tem custo adicional** — a replicação de dados entre regiões não gera cobrança extra no Security Hub.
 
-[FATO] Security Hub não é habilitado automaticamente em uma conta baseado na configuração de aggregation. Se uma linked region não tiver Security Hub habilitado, seus dados não são replicados.
+ Security Hub não é habilitado automaticamente em uma conta baseado na configuração de aggregation. Se uma linked region não tiver Security Hub habilitado, seus dados não são replicados.
 
 ### 2.3 Configuração via console
 
@@ -183,17 +182,17 @@ aws securityhub create-finding-aggregator \
 
 ### 2.4 Comportamento com contas membro
 
-[FATO] Quando um administrator account habilita cross-region aggregation:
+ Quando um administrator account habilita cross-region aggregation:
 - A configuração é herdada pelas contas membro associadas
 - O admin deve estar logado na **home region** para ver dados agregados de todos os membros
 - Contas membro só veem seus próprios dados na home region, não os de outras contas membro
 - Se o administrator-member relationship for encerrado, cross-region aggregation para para a conta membro — mesmo que ela tenha habilitado antes da relação começar
 
-[FATO] Para convites manuais (não via Organizations): o admin deve convidar o membro a partir da home region **e** de todas as linked regions para que a aggregation funcione corretamente.
+ Para convites manuais (não via Organizations): o admin deve convidar o membro a partir da home region **e** de todas as linked regions para que a aggregation funcione corretamente.
 
 ### 2.5 Implicação para CIS compliance
 
-[FATO] A documentação do Security Hub afirma explicitamente: "For full compliance with CIS AWS Foundations Benchmark security checks, you must enable Security Hub in all supported AWS Regions." Isso porque o CIS Benchmark inclui controles de monitoramento (ex: CloudTrail habilitado em todas as regiões) que só são verificados se o Security Hub estiver presente em cada região.
+ A documentação do Security Hub afirma explicitamente: "For full compliance with CIS AWS Foundations Benchmark security checks, you must enable Security Hub in all supported AWS Regions." Isso porque o CIS Benchmark inclui controles de monitoramento (ex: CloudTrail habilitado em todas as regiões) que só são verificados se o Security Hub estiver presente em cada região.
 
 ---
 
@@ -201,7 +200,7 @@ aws securityhub create-finding-aggregator \
 
 ### 3.1 Os 3 tipos de evento do Security Hub no EventBridge
 
-[FATO] O Security Hub envia 3 tipos de evento para o EventBridge:
+ O Security Hub envia 3 tipos de evento para o EventBridge:
 
 **Tipo 1: `Security Hub Findings - Imported`**
 - Disparado automaticamente, sem ação do usuário
@@ -318,17 +317,17 @@ aws events put-targets \
 }
 ```
 
-[FATO] O campo `Workflow.Status` filtra o status do workflow (`NEW`, `NOTIFIED`, `SUPPRESSED`, `RESOLVED`) — útil para evitar re-processar findings já resolvidos.
+ O campo `Workflow.Status` filtra o status do workflow (`NEW`, `NOTIFIED`, `SUPPRESSED`, `RESOLVED`) — útil para evitar re-processar findings já resolvidos.
 
 ### 3.4 Onde o EventBridge fica em relação à home region
 
-[FATO] O EventBridge event feed na home region inclui findings das linked regions em near real-time. Isso significa que uma única regra EventBridge na home region pode capturar e responder a findings de todas as regiões configuradas como linked — sem precisar criar regras separadas em cada região.
+ O EventBridge event feed na home region inclui findings das linked regions em near real-time. Isso significa que uma única regra EventBridge na home region pode capturar e responder a findings de todas as regiões configuradas como linked — sem precisar criar regras separadas em cada região.
 
 ---
 
 ## Parte 4 — Os 4 security standards nativos
 
-O plano original menciona "3 security standards nativos (CIS, FSBP, PCI-DSS)". [FATO] A documentação atual lista 4 standards principais. O NIST SP 800-53 foi adicionado. Esta tabela cobre os 4:
+O plano original menciona "3 security standards nativos (CIS, FSBP, PCI-DSS)".  A documentação atual lista 4 standards principais. O NIST SP 800-53 foi adicionado. Esta tabela cobre os 4:
 
 ### 4.1 Tabela comparativa
 
@@ -341,29 +340,29 @@ O plano original menciona "3 security standards nativos (CIS, FSBP, PCI-DSS)". [
 
 ### 4.2 FSBP — AWS Foundational Security Best Practices
 
-[FATO] É o standard desenvolvido internamente pela AWS. Cobre uma gama ampla de serviços (EC2, IAM, S3, RDS, Lambda, CloudTrail etc.) com controles específicos para AWS.
+ É o standard desenvolvido internamente pela AWS. Cobre uma gama ampla de serviços (EC2, IAM, S3, RDS, Lambda, CloudTrail etc.) com controles específicos para AWS.
 
-[CONSENSO] É considerado o melhor ponto de partida para ambientes AWS novos — é o mais atualizado em relação a novos serviços e tem o maior número de controles verificáveis automaticamente pelo Security Hub.
+ É considerado o melhor ponto de partida para ambientes AWS novos — é o mais atualizado em relação a novos serviços e tem o maior número de controles verificáveis automaticamente pelo Security Hub.
 
-[FATO] Exemplo de controles: `EC2.2` (SGs não devem permitir 0.0.0.0/0 na porta 22), `IAM.1` (IAM policies não devem ter full "*:*" admin), `S3.1` (Block Public Access habilitado no nível de conta).
+ Exemplo de controles: `EC2.2` (SGs não devem permitir 0.0.0.0/0 na porta 22), `IAM.1` (IAM policies não devem ter full "*:*" admin), `S3.1` (Block Public Access habilitado no nível de conta).
 
 ### 4.3 CIS AWS Foundations Benchmark
 
-[FATO] Produzido pelo Center for Internet Security (organização sem fins lucrativos). O Security Hub suporta múltiplas versões — CIS AWS Foundations Benchmark v1.2.0 e v1.4.0 são as mais comuns; versões mais recentes podem estar disponíveis.
+ Produzido pelo Center for Internet Security (organização sem fins lucrativos). O Security Hub suporta múltiplas versões — CIS AWS Foundations Benchmark v1.2.0 e v1.4.0 são as mais comuns; versões mais recentes podem estar disponíveis.
 
-[FATO] Dividido em seções: IAM, Storage, Logging, Monitoring, Networking. Os controles de Monitoring incluem alarmes CloudWatch para eventos específicos de CloudTrail (ex: alarme para `root account usage`, `unauthorized API calls`).
+ Dividido em seções: IAM, Storage, Logging, Monitoring, Networking. Os controles de Monitoring incluem alarmes CloudWatch para eventos específicos de CloudTrail (ex: alarme para `root account usage`, `unauthorized API calls`).
 
-[FATO] Para compliance completo com CIS: Security Hub deve estar habilitado em **todas** as regiões suportadas.
+ Para compliance completo com CIS: Security Hub deve estar habilitado em **todas** as regiões suportadas.
 
-[CONSENSO] O CIS Benchmark é o framework mais citado em processos de auditoria externa no ecossistema AWS — é comum que RFPs de segurança exijam compliance com CIS como requisito mínimo.
+ O CIS Benchmark é o framework mais citado em processos de auditoria externa no ecossistema AWS — é comum que RFPs de segurança exijam compliance com CIS como requisito mínimo.
 
 ### 4.4 PCI DSS
 
-[FATO] O PCI DSS (Payment Card Industry Data Security Standard) é mantido pelo PCI Security Standards Council. O Security Hub implementa um subconjunto de controles do PCI DSS v3.2.1 (verificar versão atual nas docs).
+ O PCI DSS (Payment Card Industry Data Security Standard) é mantido pelo PCI Security Standards Council. O Security Hub implementa um subconjunto de controles do PCI DSS v3.2.1 (verificar versão atual nas docs).
 
 Escopo de aplicação: qualquer workload que faça parte do "cardholder data environment" (CDE) — sistemas que armazenam, processam ou transmitem dados de cartão.
 
-[FATO] Os controles no Security Hub para PCI DSS são mapeados para os 12 requirements principais do PCI (ex: Requirement 1 — instalar e manter um firewall; Requirement 10 — logging e monitoramento).
+ Os controles no Security Hub para PCI DSS são mapeados para os 12 requirements principais do PCI (ex: Requirement 1 — instalar e manter um firewall; Requirement 10 — logging e monitoramento).
 
 [OPINIÃO — AWS] Para ambientes com PCI scope pequeno, [CONSENSO] é prática comum usar o PCI DSS standard como filtro para resources in-scope e o FSBP para o resto do ambiente.
 
@@ -389,7 +388,7 @@ Cenário 5: Ambiente misto — múltiplos requisitos
   consolidado (um check, múltiplos standards).
 ```
 
-[FATO] O Security Hub usa "security controls" consolidados — um mesmo controle de infraestrutura (ex: "CloudTrail deve estar habilitado") pode aparecer em múltiplos standards, mas o Security Hub roda o check uma única vez e mapepa o resultado para todos os standards relevantes.
+ O Security Hub usa "security controls" consolidados — um mesmo controle de infraestrutura (ex: "CloudTrail deve estar habilitado") pode aparecer em múltiplos standards, mas o Security Hub roda o check uma única vez e mapepa o resultado para todos os standards relevantes.
 
 ---
 
