@@ -1,9 +1,9 @@
-# Guia S09 — Threat Modeling em Workloads AWS: STRIDE + IAM Lateral Movement
+# Guia 9 — Threat Modeling em Workloads AWS: STRIDE + IAM Lateral Movement
 
-**Depende de:** S03 (escalação IAM), S06 (exfiltração S3), S07 (CloudTrail), S08 (Macie)  
-**Sessão de encerramento do plano de 3 semanas**
+**Depende de:** Guia 3 (escalação IAM), S06 (exfiltração S3), S07 (CloudTrail), S08 (Macie)  
+**Ultimo guia da semana**
 
-> **Nota:** Esta sessão sintetiza os conhecimentos de S03, S06, S07 e S08. Se você ainda não completou essas sessões, o guia ainda é utilizável — mas o exercício final terá mais profundidade com esse contexto.
+> **Nota:** Esta sessão sintetiza os conhecimentos dos Guias 3, 6, 7 e 8. Se você ainda não completou essas sessões, o guia ainda é utilizável — mas o exercício final terá mais profundidade com esse contexto.
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### 1.1 Por que threat modeling
 
-[FATO] O AWS Well-Architected Framework Security Pillar (SEC01-BP07) define threat modeling como best practice:
+ O AWS Well-Architected Framework Security Pillar (SEC01-BP07) define threat modeling como best practice:
 
 > *"Use a threat model to identify and maintain an up-to-date register of potential threats. Prioritize your threats and adapt your security controls to prevent, detect, and respond."*
 
@@ -53,7 +53,7 @@ Em arquitetura serverless (API Gateway + Lambda + S3), você foca em: configura�
 
 ## Parte 2 — AWS Threat Composer
 
-[FATO] Ferramenta open-source em `https://awslabs.github.io/threat-composer/` (web app, sem conta AWS necessária). Arquivo `.tc.json` versionável em Git.
+ Ferramenta open-source em `https://awslabs.github.io/threat-composer/` (web app, sem conta AWS necessária). Arquivo `.tc.json` versionável em Git.
 
 ### Threat Grammar
 
@@ -160,7 +160,7 @@ Internet → [API Gateway] → [Lambda (LambdaExecRole)] → [RDS PostgreSQL] + 
 
 ### 5.2 OrganizationAccountAccessRole
 
-[FATO] Em contas **criadas** via Organizations (não convidadas):
+ Em contas **criadas** via Organizations (não convidadas):
 - AWS cria `OrganizationAccountAccessRole` com trust para Management Account root
 - Permissões: `AdministratorAccess`
 - Atacante que compromete qualquer principal na Management Account pode assumir essa role em todas as contas-membro
