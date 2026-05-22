@@ -1,7 +1,7 @@
-# Guia S05 — AWS Config + Conformance Packs: Custom Rule + Remediation Automática
+# Guia 5 — AWS Config + Conformance Packs: Custom Rule + Remediation Automática
 
 **Depende de:** Nenhuma nova (Lambda e SSM cobertos pela Security Specialty)  
-**Próxima sessão:** S06 — Exfiltração S3
+**Próxima sessão:** Guia 6 — Exfiltração S3
 
 ---
 
@@ -32,9 +32,9 @@ Ao final, você deve conseguir — sem consultar documentação:
 
 ### 1.1 O modelo mental correto
 
-[FATO] O AWS Config é um serviço de **auditoria de configuração de recursos** — ele rastreia *como* os recursos AWS estão configurados ao longo do tempo e avalia se essa configuração obedece a regras definidas. Ele **não** bloqueia ações em tempo real (isso é responsabilidade de IAM e SCPs) e **não** é um SIEM (isso é CloudWatch / Security Lake). A distinção é importante para posicioná-lo corretamente em discussões de arquitetura de segurança.
+ O AWS Config é um serviço de **auditoria de configuração de recursos** — ele rastreia *como* os recursos AWS estão configurados ao longo do tempo e avalia se essa configuração obedece a regras definidas. Ele **não** bloqueia ações em tempo real (isso é responsabilidade de IAM e SCPs) e **não** é um SIEM (isso é CloudWatch / Security Lake). A distinção é importante para posicioná-lo corretamente em discussões de arquitetura de segurança.
 
-[FATO] O fluxo fundamental é:
+ O fluxo fundamental é:
 
 ```
 Recurso muda de estado
@@ -50,9 +50,9 @@ Rule retorna COMPLIANT / NON_COMPLIANT / NOT_APPLICABLE
 
 ### 1.2 Componentes principais
 
-[FATO] Para que qualquer Config rule funcione, o **Configuration Recorder** deve estar habilitado na região. O Recorder observa recursos suportados e publica snapshots e mudanças de configuração para um S3 bucket de destino e, opcionalmente, um SNS topic. O Recorder é pré-requisito — sem ele, nenhuma rule recebe eventos.
+ Para que qualquer Config rule funcione, o **Configuration Recorder** deve estar habilitado na região. O Recorder observa recursos suportados e publica snapshots e mudanças de configuração para um S3 bucket de destino e, opcionalmente, um SNS topic. O Recorder é pré-requisito — sem ele, nenhuma rule recebe eventos.
 
-[FATO] Uma **ConfigurationItem (CI)** é o objeto central do AWS Config. Ela contém:
+ Uma **ConfigurationItem (CI)** é o objeto central do AWS Config. Ela contém:
 - `resourceType` — ex: `AWS::S3::Bucket`
 - `resourceId` — ARN ou ID único do recurso
 - `configuration` — representação JSON da configuração atual (equivalente ao output de `describe-*` APIs)
@@ -62,7 +62,7 @@ Rule retorna COMPLIANT / NON_COMPLIANT / NOT_APPLICABLE
 
 ### 1.3 Dois tipos de trigger
 
-[FATO] Toda Config rule tem um tipo de trigger:
+ Toda Config rule tem um tipo de trigger:
 
 | Trigger | Como funciona | Melhor para |
 |---------|---------------|-------------|
@@ -77,13 +77,13 @@ Rule retorna COMPLIANT / NON_COMPLIANT / NOT_APPLICABLE
 
 ### 2.1 Por que criar uma custom rule aqui?
 
-[FATO] AWS já oferece a managed rule `S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED` (identifier `s3-bucket-level-public-access-prohibited`), que detecta exatamente esse padrão — buckets S3 cujo Block Public Access em nível de bucket está desabilitado. Ela tem trigger **Configuration changes** e resource type `AWS::S3::Bucket`.
+ AWS já oferece a managed rule `S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED` (identifier `s3-bucket-level-public-access-prohibited`), que detecta exatamente esse padrão — buckets S3 cujo Block Public Access em nível de bucket está desabilitado. Ela tem trigger **Configuration changes** e resource type `AWS::S3::Bucket`.
 
 O exercício de escrever uma custom Lambda rule equivalente tem valor pedagógico: mostra o contrato de comunicação entre Config e Lambda, que é o mesmo para qualquer avaliação personalizada que você precisar escrever (e que não tenha managed rule disponível).
 
 ### 2.2 Os dois tipos de custom rule
 
-[FATO] Desde 2022, o AWS Config suporta dois tipos de custom rule:
+ Desde 2022, o AWS Config suporta dois tipos de custom rule:
 
 - **Custom Policy Rules** — escritas em [Guard](https://github.com/aws-cloudformation/cloudformation-guard), policy-as-code language. Não exigem Lambda. Criadas via console ou API. Iniciadas exclusivamente por configuration changes. Ideais para regras simples com lógica declarativa.
 - **Custom Lambda Rules** — função Java ou Python que você faz upload para o Lambda. O Config invoca a função quando a rule é disparada. Permitem lógica arbitrária, chamadas a APIs externas, e são o modelo anterior (mais flexível, mais complexo).
@@ -92,7 +92,7 @@ O exercício abaixo usa **Custom Lambda Rule** (Python) para expor todos os deta
 
 ### 2.3 O contrato Lambda ↔ Config
 
-[CONSENSO] Quando o Config invoca uma Custom Lambda Rule com trigger **Configuration changes**, o event recebido pela função tem a seguinte estrutura:
+ Quando o Config invoca uma Custom Lambda Rule com trigger **Configuration changes**, o event recebido pela função tem a seguinte estrutura:
 
 ```json
 {
@@ -178,9 +178,9 @@ def lambda_handler(event, context):
 
 **Observações técnicas críticas:**
 
-[CONSENSO] O campo `PublicAccessBlockConfiguration` está em `supplementaryConfiguration`, não em `configuration`. Esse é um erro frequente em custom rules para S3 — o objeto `configuration` principal não contém as configurações de Block Public Access; elas ficam no `supplementaryConfiguration` que o Config captura via `GetPublicAccessBlock` API. Se você checar o campo errado, a rule sempre retorna `NON_COMPLIANT` mesmo para buckets protegidos.
+ O campo `PublicAccessBlockConfiguration` está em `supplementaryConfiguration`, não em `configuration`. Esse é um erro frequente em custom rules para S3 — o objeto `configuration` principal não contém as configurações de Block Public Access; elas ficam no `supplementaryConfiguration` que o Config captura via `GetPublicAccessBlock` API. Se você checar o campo errado, a rule sempre retorna `NON_COMPLIANT` mesmo para buckets protegidos.
 
-[FATO] O campo `Annotation` no `put_evaluations()` é opcional mas aparece no console do Config e é visível via `GetComplianceDetailsByResource` — use para facilitar troubleshooting.
+ O campo `Annotation` no `put_evaluations()` é opcional mas aparece no console do Config e é visível via `GetComplianceDetailsByResource` — use para facilitar troubleshooting.
 
 ### 2.5 Permissões necessárias
 
@@ -231,24 +231,24 @@ aws configservice put-config-rule --config-rule '{
 
 ### 3.1 O modelo de remediation
 
-[FATO] O Config aplica remediation usando **AWS Systems Manager Automation documents** (SSM documents). O mecanismo é:
+ O Config aplica remediation usando **AWS Systems Manager Automation documents** (SSM documents). O mecanismo é:
 
 1. Config detecta NON_COMPLIANT
 2. Config invoca o SSM Automation document configurado para aquela rule
 3. O SSM document executa ações no recurso não-conforme (ex: habilitar Block Public Access)
 4. Config reavalia o recurso após a execução
 
-[FATO] Há dois modos de remediation:
+ Há dois modos de remediation:
 - **Manual remediation**: você precisa clicar "Remediate" para cada recurso — útil quando quer revisão humana
 - **Auto remediation**: Config dispara a remediation automaticamente quando detecta NON_COMPLIANT
 
-[FATO] Confirmado nas docs: **auto remediation pode ser disparada mesmo para recursos já conforme** se o snapshot de compliance estiver desatualizado. Isso ocorre porque o processador de auto-remediation usa o banco de dados de avaliações, que pode ter resultados stale. Leve isso em conta em produção — evite remediation automática para ações destrutivas ou irreversíveis.
+ Confirmado nas docs: **auto remediation pode ser disparada mesmo para recursos já conforme** se o snapshot de compliance estiver desatualizado. Isso ocorre porque o processador de auto-remediation usa o banco de dados de avaliações, que pode ter resultados stale. Leve isso em conta em produção — evite remediation automática para ações destrutivas ou irreversíveis.
 
 ### 3.2 SSM documents de remediation: managed vs. custom
 
-[CONSENSO] A AWS fornece uma biblioteca de SSM documents de remediation para os managed Config rules mais comuns. O padrão de nomenclatura é `AWSConfigRemediation-*`.
+ A AWS fornece uma biblioteca de SSM documents de remediation para os managed Config rules mais comuns. O padrão de nomenclatura é `AWSConfigRemediation-*`.
 
-[INCERTO — verificar no console SSM] Para a rule de S3 Block Public Access, o document relevante é `AWSConfigRemediation-ConfigureS3BucketPublicAccessBlock`. O nome exato pode variar — confirme em **Systems Manager → Documents → Owned by Amazon** antes de usar em produção.
+Para a rule de S3 Block Public Access, o document relevante é `AWSConfigRemediation-ConfigureS3BucketPublicAccessBlock`. O nome exato pode variar — confirme em **Systems Manager → Documents → Owned by Amazon** antes de usar em produção.
 
 Para criar um SSM document custom:
 
@@ -279,11 +279,11 @@ mainSteps:
     # Nota: para configuração em nível de bucket (não conta), use a API s3:PutBucketPublicAccessBlock
 ```
 
-[CONSENSO] Na prática, a maioria das remediations de S3 usam `aws:executeAwsApi` com `s3:PutPublicAccessBlock` (nível de bucket). O exemplo acima usa `s3control` para demonstrar a variação de nível de conta — para a rule de S3 individual, ajuste para `s3:PutPublicAccessBlock` com o parâmetro `Bucket`.
+ Na prática, a maioria das remediations de S3 usam `aws:executeAwsApi` com `s3:PutPublicAccessBlock` (nível de bucket). O exemplo acima usa `s3control` para demonstrar a variação de nível de conta — para a rule de S3 individual, ajuste para `s3:PutPublicAccessBlock` com o parâmetro `Bucket`.
 
 ### 3.3 Configurando auto-remediation no console
 
-[FATO] Caminho no console:
+ Caminho no console:
 
 ```
 AWS Config → Rules → [selecionar rule] → Actions → Manage remediation
@@ -335,11 +335,11 @@ A role `ConfigRemediationRole` precisa de permissões para executar o SSM docume
 
 ### 4.1 O que é um Conformance Pack
 
-[FATO] Um **Conformance Pack** é uma coleção de Config rules e remediation actions empacotadas em um único artefato YAML, implantável como uma entidade única em uma conta+região ou em toda uma organização via AWS Organizations.
+ Um **Conformance Pack** é uma coleção de Config rules e remediation actions empacotadas em um único artefato YAML, implantável como uma entidade única em uma conta+região ou em toda uma organização via AWS Organizations.
 
-[FATO] Definição oficial (AWS docs): *"A conformance pack is a collection of AWS Config rules and remediation actions that can be easily deployed as a single entity in an account and a Region or across an organization in AWS Organizations."*
+ Definição oficial (AWS docs): *"A conformance pack is a collection of AWS Config rules and remediation actions that can be easily deployed as a single entity in an account and a Region or across an organization in AWS Organizations."*
 
-[FATO] O artefato é um template YAML com estrutura similar a CloudFormation, mas não é um template CFN — é um formato proprietário do Config. Pode conter Config managed rules, custom Lambda rules, e remediation actions. Deploy via console do Config ou CLI com `put-conformance-pack`.
+ O artefato é um template YAML com estrutura similar a CloudFormation, mas não é um template CFN — é um formato proprietário do Config. Pode conter Config managed rules, custom Lambda rules, e remediation actions. Deploy via console do Config ou CLI com `put-conformance-pack`.
 
 ### 4.2 Estrutura de um Conformance Pack YAML
 
@@ -381,12 +381,12 @@ Resources:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/ConfigRemediationRole
 ```
 
-[FATO] Templates de sample conformance packs estão disponíveis em:  
+ Templates de sample conformance packs estão disponíveis em:  
 `https://github.com/awslabs/aws-config-rules/tree/master/aws-config-conformance-packs`
 
 ### 4.3 Implantando o CIS AWS Foundations Benchmark via console (O3)
 
-[FATO] O AWS Config oferece o CIS AWS Foundations Benchmark como conformance pack sample. A versão disponível nos templates de sample é a **v1.4**, com dois níveis: Level 1 e Level 2 (o Level 2 é superset do Level 1 e tem mais controles restritivos).
+ O AWS Config oferece o CIS AWS Foundations Benchmark como conformance pack sample. A versão disponível nos templates de sample é a **v1.4**, com dois níveis: Level 1 e Level 2 (o Level 2 é superset do Level 1 e tem mais controles restritivos).
 
 Caminho no console:
 
@@ -400,7 +400,7 @@ AWS Config → Conformance packs → Deploy conformance pack
   → Deploy
 ```
 
-[FATO] Aviso das docs oficiais (importante para provas e decisões arquiteturais):
+ Aviso das docs oficiais (importante para provas e decisões arquiteturais):
 
 > *"AWS conformance pack sample templates intend to help you create your own conformance packs with different or additional rules. The sample templates, including those related to compliance standards and industry benchmarks, are not designed to ensure your compliance with a specific governance standard. They can neither replace your internal efforts nor guarantee that you will pass a compliance assessment."*
 
@@ -418,7 +418,7 @@ aws configservice put-conformance-pack \
 
 ### 4.4 ConfigRule vs. Conformance Pack — quando usar cada um (O4)
 
-[CONSENSO] A distinção prática:
+ A distinção prática:
 
 | Dimensão | `AWS::Config::ConfigRule` (individual) | Conformance Pack |
 |----------|----------------------------------------|-----------------|
@@ -434,7 +434,7 @@ aws configservice put-conformance-pack \
 - **ConfigRule individual** → quando você precisa de uma regra específica, não relacionada a um framework, ou que será gerenciada independentemente do ciclo de outros controles
 - **Conformance Pack** → quando o conjunto de rules representa um *framework de compliance* (CIS, PCI, NIST, padrão interno corporativo) que deve ser tratado como artefato único, versionado, e possivelmente implantado em múltiplas contas
 
-[CONSENSO] Uma limitação relevante: as rules de dentro de um Conformance Pack **não podem ser editadas ou deletadas individualmente** sem remover o pack inteiro. Isso garante integridade do framework mas impede correções cirúrgicas. Por isso, começar com rules individuais e depois empacotar em um Conformance Pack é um caminho válido de maturidade.
+ Uma limitação relevante: as rules de dentro de um Conformance Pack **não podem ser editadas ou deletadas individualmente** sem remover o pack inteiro. Isso garante integridade do framework mas impede correções cirúrgicas. Por isso, começar com rules individuais e depois empacotar em um Conformance Pack é um caminho válido de maturidade.
 
 ---
 
