@@ -1,7 +1,7 @@
-# Guia S01 — GuardDuty em profundidade: finding types + multi-conta
+# Guia 1 — GuardDuty em profundidade: finding types + multi-conta
 
 **Depende de:** nenhuma sessão anterior  
-**Próxima sessão:** S02 — Security Hub (ASFF + EventBridge)
+**Próxima sessão:** Guia 2 — Security Hub (ASFF + EventBridge)
 
 ---
 
@@ -21,7 +21,7 @@ Esta sessão cobre quatro objetivos verificáveis. Organize o tempo assim:
 
 ### 1.1 Formato do nome de um finding
 
-[FATO] Todo finding do GuardDuty segue o formato:
+ Todo finding do GuardDuty segue o formato:
 
 ```
 ThreatPurpose:ResourceType/ThreatFamilyName.DetectionMechanism
@@ -42,7 +42,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 **O que monitora:** atividade de rede em instâncias EC2 — tráfego VPC Flow Logs e consultas DNS.
 
-**Fonte de dados primária:** [FATO] VPC Flow Logs e DNS query logs — estes são **foundational data sources**, consumidos pelo GuardDuty diretamente sem necessidade de habilitação adicional.
+**Fonte de dados primária:**  VPC Flow Logs e DNS query logs — estes são **foundational data sources**, consumidos pelo GuardDuty diretamente sem necessidade de habilitação adicional.
 
 **Finding crítico de referência:** `Backdoor:EC2/C&CActivity.B!DNS`
 
@@ -62,7 +62,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 **O que monitora:** atividade de entidades IAM — usuários, roles, chaves de acesso.
 
-**Fonte de dados primária:** [FATO] CloudTrail **management events** — o GuardDuty tem pipeline próprio e independente do CloudTrail; você não precisa ter CloudTrail habilitado na conta para receber esses findings.
+**Fonte de dados primária:**  CloudTrail **management events** — o GuardDuty tem pipeline próprio e independente do CloudTrail; você não precisa ter CloudTrail habilitado na conta para receber esses findings.
 
 **Finding crítico de referência:** `Policy:IAMUser/RootCredentialUsage`
 
@@ -82,7 +82,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 **O que monitora:** acesso a buckets e objetos S3.
 
-**Fonte de dados primária:** [FATO] CloudTrail **S3 data events** e S3 management events — requerem que o **S3 Protection** esteja habilitado no GuardDuty (não é parte dos foundational data sources no modo legado, mas é habilitado por padrão em contas novas desde 2021).
+**Fonte de dados primária:**  CloudTrail **S3 data events** e S3 management events — requerem que o **S3 Protection** esteja habilitado no GuardDuty (não é parte dos foundational data sources no modo legado, mas é habilitado por padrão em contas novas desde 2021).
 
 **Finding crítico de referência:** `Exfiltration:S3/ObjectRead.Unusual`
 
@@ -102,7 +102,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 **O que monitora:** atividade nos clusters EKS via audit logs do Kubernetes.
 
-**Fonte de dados primária:** [FATO] EKS Audit Logs — requerem que o **EKS Audit Log Monitoring** (ou **EKS Protection**) esteja habilitado no GuardDuty. [INCERTO — verificar docs atuais] A nomenclatura exata da feature variou entre "EKS Protection" e "Kubernetes protection" ao longo das versões da UI.
+**Fonte de dados primária:**  EKS Audit Logs — requerem que o **EKS Audit Log Monitoring** (ou **EKS Protection**) esteja habilitado no GuardDuty. [INCERTO — verificar docs atuais] A nomenclatura exata da feature variou entre "EKS Protection" e "Kubernetes protection" ao longo das versões da UI.
 
 **Finding crítico de referência:** `PrivilegeEscalation:Kubernetes/PrivilegedContainer`
 
@@ -122,7 +122,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 **O que monitora:** presença de malware em volumes EBS e (com configuração adicional) objetos S3.
 
-**Fonte de dados primária:** [FATO] Scanning de volumes EBS — o GuardDuty cria snapshots dos volumes suspeitos e os escaneia em ambiente isolado. Não requer agente na instância.
+**Fonte de dados primária:**  Scanning de volumes EBS — o GuardDuty cria snapshots dos volumes suspeitos e os escaneia em ambiente isolado. Não requer agente na instância.
 
 **Finding crítico de referência:** `Execution:EC2/MaliciousFile`
 
@@ -138,7 +138,7 @@ Exemplo: `CryptoCurrency:EC2/BitcoinTool.B!DNS`
 
 ### 1.7 Nota sobre proteções adicionais (além das 5 famílias do plano)
 
-[INCERTO — verificar datas de GA nas docs] O GuardDuty adicionou proteções adicionais que não estavam no escopo original deste plano:
+O GuardDuty adicionou proteções adicionais que não estavam no escopo original deste plano:
 - **RDS Protection** — anomalias de login em instâncias RDS/Aurora
 - **Lambda Protection** — atividade de rede suspeita em funções Lambda durante execução
 - **Runtime Monitoring** — agente (SSM-based ou ECS/EKS sidecar) que monitora syscalls em tempo de execução para EC2, ECS e EKS
@@ -153,19 +153,19 @@ Esta é uma das distinções mais cobradas e mais mal-entendidas no GuardDuty.
 
 ### 2.1 O que são
 
-[FATO] No contexto do CloudTrail (e por extensão do GuardDuty), os eventos são categorizados em:
+ No contexto do CloudTrail (e por extensão do GuardDuty), os eventos são categorizados em:
 
 **Management events** (também chamados de *control plane events*):
 - Chamadas de API que criam, modificam ou deletam recursos AWS
 - Exemplos: `CreateBucket`, `RunInstances`, `CreateUser`, `AttachRolePolicy`, `DeleteTrail`
-- [FATO] São capturados pelo CloudTrail por padrão (sem custo adicional para 1 trail gratuito)
-- [FATO] O GuardDuty tem seu **próprio pipeline independente** de ingestão de management events — ele não depende de um CloudTrail estar configurado na conta para gerar findings IAMUser
+-  São capturados pelo CloudTrail por padrão (sem custo adicional para 1 trail gratuito)
+-  O GuardDuty tem seu **próprio pipeline independente** de ingestão de management events — ele não depende de um CloudTrail estar configurado na conta para gerar findings IAMUser
 
 **Data events** (também chamados de *data plane events*):
 - Chamadas de API sobre recursos específicos — operações em objetos, não no recurso em si
 - Exemplos: `GetObject`, `PutObject` (S3), `Invoke` (Lambda), `GetItem` (DynamoDB)
-- [FATO] **NÃO são capturados pelo CloudTrail por padrão** — requerem configuração explícita e geram custo adicional
-- [FATO] O GuardDuty também tem pipeline independente para S3 data events — você não precisa habilitar CloudTrail data events para ter S3 Protection no GuardDuty
+-  **NÃO são capturados pelo CloudTrail por padrão** — requerem configuração explícita e geram custo adicional
+-  O GuardDuty também tem pipeline independente para S3 data events — você não precisa habilitar CloudTrail data events para ter S3 Protection no GuardDuty
 
 ### 2.2 A implicação operacional crítica
 
@@ -190,11 +190,11 @@ Esta é uma das distinções mais cobradas e mais mal-entendidas no GuardDuty.
 
 ### 2.3 Por que isso importa para detecção
 
-[FATO] Um finding `Policy:IAMUser/RootCredentialUsage` vem de um **management event** (`ConsoleLogin` ou uma chamada de API) — o GuardDuty detecta isso mesmo sem CloudTrail configurado na conta.
+ Um finding `Policy:IAMUser/RootCredentialUsage` vem de um **management event** (`ConsoleLogin` ou uma chamada de API) — o GuardDuty detecta isso mesmo sem CloudTrail configurado na conta.
 
-[FATO] Um finding `Exfiltration:S3/ObjectRead.Unusual` vem de um **S3 data event** (`GetObject`) — requer S3 Protection habilitado. Se S3 Protection estiver desabilitado, o GuardDuty **não verá** esse acesso.
+ Um finding `Exfiltration:S3/ObjectRead.Unusual` vem de um **S3 data event** (`GetObject`) — requer S3 Protection habilitado. Se S3 Protection estiver desabilitado, o GuardDuty **não verá** esse acesso.
 
-[FATO] Isso também significa que um atacante que desabilita o CloudTrail (`DeleteTrail`, `StopLogging`) ainda será detectado pelo GuardDuty via management events — o GuardDuty tem seu próprio canal, independente do CloudTrail da conta.
+ Isso também significa que um atacante que desabilita o CloudTrail (`DeleteTrail`, `StopLogging`) ainda será detectado pelo GuardDuty via management events — o GuardDuty tem seu próprio canal, independente do CloudTrail da conta.
 
 ---
 
@@ -202,7 +202,7 @@ Esta é uma das distinções mais cobradas e mais mal-entendidas no GuardDuty.
 
 ### 3.1 O que são e quando usar
 
-[FATO] Uma suppression rule é um filtro persistente que arquiva automaticamente os findings que correspondem a critérios definidos. Findings suprimidos são arquivados com status `ARCHIVED` — eles ainda existem e são auditáveis, mas não aparecem como findings ativos.
+ Uma suppression rule é um filtro persistente que arquiva automaticamente os findings que correspondem a critérios definidos. Findings suprimidos são arquivados com status `ARCHIVED` — eles ainda existem e são auditáveis, mas não aparecem como findings ativos.
 
 **Casos de uso legítimos:**
 - Findings de atividade esperada em ambientes de pentest
@@ -210,7 +210,7 @@ Esta é uma das distinções mais cobradas e mais mal-entendidas no GuardDuty.
 - Findings de ferramentas de CI/CD que fazem chamadas de API em volume
 - Findings de ambientes de desenvolvimento com configurações deliberadamente abertas
 
-[CONSENSO] A regra de ouro é: suppression rules devem ser específicas ao máximo. Uma regra ampla demais pode silenciar ameaças reais disfarçadas de atividade conhecida.
+A regra de ouro é: suppression rules devem ser específicas ao máximo. Uma regra ampla demais pode silenciar ameaças reais disfarçadas de atividade conhecida.
 
 ### 3.2 Configuração via console
 
@@ -251,7 +251,7 @@ aws guardduty create-filter \
   }'
 ```
 
-[FATO] O parâmetro `--action ARCHIVE` é o que torna um filter uma suppression rule — sem ele, é apenas um saved filter para visualização.
+ O parâmetro `--action ARCHIVE` é o que torna um filter uma suppression rule — sem ele, é apenas um saved filter para visualização.
 
 ### 3.4 O que NÃO fazer
 
@@ -263,7 +263,7 @@ aws guardduty create-filter \
 
 ### 4.1 O modelo de delegated administrator
 
-[FATO] O modelo preferencial para GuardDuty em ambientes multi-conta com AWS Organizations funciona assim:
+ O modelo preferencial para GuardDuty em ambientes multi-conta com AWS Organizations funciona assim:
 
 ```
 ┌────────────────────────────────────────┐
@@ -292,17 +292,17 @@ aws guardduty create-filter \
 
 ### 4.2 Fatos operacionais críticos confirmados na documentação oficial
 
-[FATO] **O delegated admin é regional.** Você deve designar o mesmo delegated admin em cada região onde quer gerenciar GuardDuty. Não é possível ter contas diferentes como delegated admin em regiões diferentes.
+ **O delegated admin é regional.** Você deve designar o mesmo delegated admin em cada região onde quer gerenciar GuardDuty. Não é possível ter contas diferentes como delegated admin em regiões diferentes.
 
-[FATO] **Limite de membros:** 50.000 member accounts por delegated admin account. Acima disso, você recebe notificação via CloudWatch e Health Dashboard.
+ **Limite de membros:** 50.000 member accounts por delegated admin account. Acima disso, você recebe notificação via CloudWatch e Health Dashboard.
 
-[FATO] **Não é recomendado usar o Management Account como delegated admin.** A documentação AWS explicitamente desaconselha por princípio de menor privilégio.
+ **Não é recomendado usar o Management Account como delegated admin.** A documentação AWS explicitamente desaconselha por princípio de menor privilégio.
 
-[FATO] **Remover o delegated admin não desabilita o GuardDuty nas contas membro.** GuardDuty permanece ativo em todas as contas membro mesmo após a remoção do admin.
+ **Remover o delegated admin não desabilita o GuardDuty nas contas membro.** GuardDuty permanece ativo em todas as contas membro mesmo após a remoção do admin.
 
 ### 4.3 Auto-enable preferences
 
-[FATO] O delegated admin configura três opções de auto-enable via console (`Accounts` → `Edit`) ou via `UpdateOrganizationConfiguration`:
+ O delegated admin configura três opções de auto-enable via console (`Accounts` → `Edit`) ou via `UpdateOrganizationConfiguration`:
 
 | Opção | Comportamento |
 |-------|---------------|
@@ -323,7 +323,7 @@ aws guardduty describe-organization-configuration \
   --detector-id <DETECTOR_ID_DO_DELEGATED_ADMIN>
 ```
 
-[FATO] Cada protection plan (S3 Protection, EKS, Malware etc.) tem seu próprio auto-enable configurável separadamente — exceto Malware Protection for S3, que não suporta auto-enable via Organizations.
+ Cada protection plan (S3 Protection, EKS, Malware etc.) tem seu próprio auto-enable configurável separadamente — exceto Malware Protection for S3, que não suporta auto-enable via Organizations.
 
 ### 4.4 Como designar o delegated admin (Management Account)
 
@@ -337,13 +337,13 @@ aws guardduty enable-organization-admin-account \
 
 ### 4.5 O que o delegated admin PODE e NÃO PODE fazer
 
-[FATO] **Pode:**
+ **Pode:**
 - Ver findings de todas as contas membro
 - Configurar auto-enable e protection plans para toda a org
 - Criar suppression rules que se aplicam à sua própria conta
 - Suspender ou remover contas membro do GuardDuty
 
-[FATO] **Não pode:**
+ **Não pode:**
 - Ver o conteúdo dos recursos da conta membro (só os metadados do finding)
 - Aplicar suppression rules centralizadas que afetam as contas membro automaticamente (cada membro gerencia suas próprias suppression rules, a menos que você use automação via EventBridge + Lambda)
 
