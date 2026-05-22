@@ -1,13 +1,13 @@
-# Guia S07 — CloudTrail Avançado: Organization Trail, Log Integrity e Lake SQL
+# Guia 7 — CloudTrail Avançado: Organization Trail, Log Integrity e Lake SQL
 
-**Depende de:** S03 (correlação CloudTrail), S06 (data events vs management events)  
-**Próxima sessão:** S08
+**Depende de:** Guia 3 (correlação CloudTrail), S06 (data events vs management events)  
+**Próxima sessão:** Guia 8
 
 ---
 
 ## ⚠️ Correção em relação ao plano original
 
-> **Status [INCERTO] — verifique antes de estudar o Lake:**
+> **Status  — verifique antes de estudar o Lake:**
 >
 > Durante a pesquisa para este guia, foi localizada uma página
 > `cloudtrail-lake-service-availability-change.html` indicando que o
@@ -57,7 +57,7 @@
 
 ### 1.1 O que é e por que importa
 
-[FATO] Uma Organization trail é uma trail do CloudTrail criada no Management Account de uma AWS Organization que **replica automaticamente a configuração para todas as contas-membro**, garantindo captura centralizada de eventos. A trail fica visível em cada conta-membro, mas os membros **não podem modificá-la nem apagá-la**.
+ Uma Organization trail é uma trail do CloudTrail criada no Management Account de uma AWS Organization que **replica automaticamente a configuração para todas as contas-membro**, garantindo captura centralizada de eventos. A trail fica visível em cada conta-membro, mas os membros **não podem modificá-la nem apagá-la**.
 
 **Vantagens sobre trails individuais por conta:**
 - Cobertura automática de contas novas adicionadas à org
@@ -66,7 +66,7 @@
 
 ### 1.2 Pré-requisitos
 
-[FATO] Antes de criar a organization trail, três condições devem ser satisfeitas:
+ Antes de criar a organization trail, três condições devem ser satisfeitas:
 
 **1. All Features habilitado na Organization:**
 ```bash
@@ -80,11 +80,11 @@ aws organizations enable-aws-service-access \
 ```
 
 **3. Permissões adequadas no Management Account:**
-[FATO] O IAM principal que cria a trail precisa de `AWSCloudTrail_FullAccess` ou equivalente. Contas-membro não têm permissão para criar organization trails.
+ O IAM principal que cria a trail precisa de `AWSCloudTrail_FullAccess` ou equivalente. Contas-membro não têm permissão para criar organization trails.
 
 ### 1.3 Bucket S3 — política necessária
 
-[FATO] O bucket que receberá os logs precisa de uma política com **três statements** específicos para organization trails:
+ O bucket que receberá os logs precisa de uma política com **três statements** específicos para organization trails:
 
 ```json
 {
@@ -156,7 +156,7 @@ aws cloudtrail get-trail-status --name minha-org-trail
 
 ### 1.5 Estrutura de paths no S3
 
-[FATO] Os logs de contas-membro ficam sob um diretório com o ID da organization:
+ Os logs de contas-membro ficam sob um diretório com o ID da organization:
 
 ```
 s3://MEU-BUCKET/
@@ -172,7 +172,7 @@ s3://MEU-BUCKET/
 
 ### 1.6 Service-linked role criada automaticamente
 
-[FATO] Ao criar a organization trail pelo Console, a AWS cria automaticamente a service-linked role `AWSServiceRoleForCloudTrail`. Quando uma nova conta é adicionada à org, a organization trail e a service-linked role são adicionadas automaticamente. Quando uma conta é removida, a trail e a role são removidas — mas os logs gerados antes da remoção permanecem no bucket.
+ Ao criar a organization trail pelo Console, a AWS cria automaticamente a service-linked role `AWSServiceRoleForCloudTrail`. Quando uma nova conta é adicionada à org, a organization trail e a service-linked role são adicionadas automaticamente. Quando uma conta é removida, a trail e a role são removidas — mas os logs gerados antes da remoção permanecem no bucket.
 
 ---
 
@@ -180,11 +180,11 @@ s3://MEU-BUCKET/
 
 ### 2.1 O problema que o recurso resolve
 
-[FATO] Os logs do CloudTrail ficam em um bucket S3. Por padrão, se um atacante comprometer uma conta com permissões suficientes, pode apagar ou modificar os arquivos de log para encobrir rastros. A **Log File Integrity Validation** resolve isso criando uma cadeia de assinaturas criptográficas verificável externamente.
+ Os logs do CloudTrail ficam em um bucket S3. Por padrão, se um atacante comprometer uma conta com permissões suficientes, pode apagar ou modificar os arquivos de log para encobrir rastros. A **Log File Integrity Validation** resolve isso criando uma cadeia de assinaturas criptográficas verificável externamente.
 
 ### 2.2 Como funciona — os digest files
 
-[FATO] Quando a validação está habilitada, o CloudTrail cria um arquivo chamado **digest file** a cada hora. Cada digest file:
+ Quando a validação está habilitada, o CloudTrail cria um arquivo chamado **digest file** a cada hora. Cada digest file:
 - Lista todos os arquivos de log entregues no bucket durante aquela hora
 - Contém o **hash SHA-256** de cada arquivo de log listado
 - É **assinado digitalmente** usando SHA-256 com RSA (algoritmo `SHA256withRSA`)
@@ -216,11 +216,11 @@ s3://MEU-BUCKET/
 - `previousDigestHashValue` → hash SHA-256 do digest anterior
 - `previousDigestSignature` → assinatura RSA do digest anterior
 
-[FATO] Os digest files ficam em path separado: `s3://BUCKET/AWSLogs/ACCOUNT-ID/CloudTrail-Digest/REGION/YYYY/MM/DD/`
+ Os digest files ficam em path separado: `s3://BUCKET/AWSLogs/ACCOUNT-ID/CloudTrail-Digest/REGION/YYYY/MM/DD/`
 
 ### 2.4 Por que a hash chain é difícil de falsificar
 
-[FATO] Para adulterar um log sem detecção, um atacante precisaria:
+ Para adulterar um log sem detecção, um atacante precisaria:
 1. Modificar o arquivo de log
 2. Recalcular o hash SHA-256 correto
 3. Atualizar o digest file com o novo hash
@@ -253,7 +253,7 @@ aws cloudtrail validate-logs \
 
 ### 2.6 Hardening adicional
 
-[CONSENSO] Para aumentar a proteção dos digest files:
+ Para aumentar a proteção dos digest files:
 - Habilitar **S3 MFA Delete** no bucket (impede exclusão sem MFA física)
 - Configurar **S3 Object Lock** em modo COMPLIANCE (imutabilidade por período definido)
 - Restringir permissões de `s3:DeleteObject` via SCPs para os caminhos `CloudTrail-Digest/`
@@ -264,11 +264,11 @@ aws cloudtrail validate-logs \
 
 ### 3.1 O que é o CloudTrail Lake
 
-[FATO] O CloudTrail Lake é um repositório de eventos gerenciado (event data store) que permite armazenar e consultar eventos CloudTrail usando SQL. Diferente de trails que gravam em S3, o Lake mantém os dados internamente e os expõe via interface de query SQL no Console e CLI.
+ O CloudTrail Lake é um repositório de eventos gerenciado (event data store) que permite armazenar e consultar eventos CloudTrail usando SQL. Diferente de trails que gravam em S3, o Lake mantém os dados internamente e os expõe via interface de query SQL no Console e CLI.
 
 ### 3.2 Dialeto SQL suportado
 
-[FATO] O CloudTrail Lake usa **Trino SQL**. Restrições importantes:
+ O CloudTrail Lake usa **Trino SQL**. Restrições importantes:
 - Apenas instruções `SELECT` são suportadas
 - O `FROM` aponta para o ID do event data store, não para um nome de tabela
 - Funções de data/hora como `DATE_ADD` e `NOW()` são suportadas
@@ -347,7 +347,7 @@ LIMIT 200
 
 ### 3.5 Por que `AssumeRole` + `AccessDenied` é sinal de alerta
 
-[CONSENSO] Uma sequência de `AssumeRole` negados pode indicar:
+ Uma sequência de `AssumeRole` negados pode indicar:
 - Tentativa de **privilege escalation**: atacante testando quais roles consegue assumir
 - **Credential stuffing**: chaves comprometidas testadas contra múltiplas roles
 - Configuração incorreta legítima (falso positivo frequente)
@@ -415,7 +415,7 @@ aws cloudtrail get-query-results \
 
 ### 4.3 Estratégia de custo para ambientes reais
 
-[CONSENSO] Abordagem mais comum em produção:
+ Abordagem mais comum em produção:
 1. **Management Events:** sempre habilitado (primeira cópia gratuita)
 2. **Data Events:** seletivamente — apenas buckets S3 sensíveis, Lambdas críticas
 3. **Insights:** habilitado se custo de não-detecção é alto
