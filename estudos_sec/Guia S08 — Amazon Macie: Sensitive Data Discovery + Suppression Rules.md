@@ -1,7 +1,7 @@
-# Guia S08 — Amazon Macie: Sensitive Data Discovery + Suppression Rules
+# Guia 8 — Amazon Macie: Sensitive Data Discovery + Suppression Rules
 
-**Depende de:** S06 (contexto de exfiltração S3), S02 (integração Security Hub)  
-**Próxima sessão:** S09
+**Depende de:** Guia 6 (contexto de exfiltração S3), S02 (integração Security Hub)  
+**Próxima sessão:** Guia 9
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### 1.1 O que o Macie detecta
 
-[FATO] O Amazon Macie gera dois tipos de findings:
+ O Amazon Macie gera dois tipos de findings:
 
 **Policy findings** — detectam problemas de segurança em **configurações de buckets S3**. Monitoramento contínuo. Gerados quando uma configuração muda para estado menos seguro *após* habilitação do Macie.
 
@@ -133,7 +133,7 @@ Finding
 
 ### 3.3 Nível de confiança
 
-[FATO] Severidade baseada em: quantidade de ocorrências + tipo de dado. Managed identifiers usam regex + heurísticas de contexto + checksum (ex: Luhn para cartões).
+ Severidade baseada em: quantidade de ocorrências + tipo de dado. Managed identifiers usam regex + heurísticas de contexto + checksum (ex: Luhn para cartões).
 
 - **High** — dados de alto impacto em alto volume
 - **Medium** — dados moderados ou baixo volume de alto impacto
@@ -178,7 +178,7 @@ Finding
 
 ### 4.1 O que acontece com findings suprimidos
 
-[FATO] Quando uma suppression rule corresponde a um finding:
+ Quando uma suppression rule corresponde a um finding:
 - Status alterado para **`archived`** automaticamente
 - **Não aparece** na view padrão do Console
 - **Não é publicado** no EventBridge nem no Security Hub
@@ -206,7 +206,7 @@ aws macie2 create-findings-filter \
   }'
 ```
 
-[FATO] `--action ARCHIVE` = suppression rule. `--action NOOP` = filtro de visualização apenas.
+ `--action ARCHIVE` = suppression rule. `--action NOOP` = filtro de visualização apenas.
 
 ### 4.3 Multi-conta
 
