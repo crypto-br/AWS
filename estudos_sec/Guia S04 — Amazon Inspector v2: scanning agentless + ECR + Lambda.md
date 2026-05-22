@@ -1,9 +1,8 @@
-# Guia S04 — Amazon Inspector v2: scanning agentless + ECR + Lambda
+# Guia 4 — Amazon Inspector v2: scanning agentless + ECR + Lambda
 
 **Depende de:** Conhecimento de EC2, ECR e Lambda (pré-existente). S02 útil para contexto de integração Security Hub.  
-**Próxima sessão:** S05 — AWS Config + Conformance Packs
+**Próxima sessão:** Guia 5 — AWS Config + Conformance Packs
 
-> **Correção ao plano original:** O plano descreve o EC2 scanning do Inspector v2 como "SSM-based, agentless". A documentação atual descreve o modo padrão como **híbrido**: o Inspector usa o SSM agent se estiver instalado (agent-based) e usa EBS snapshots se não estiver (agentless). Os dois caminhos coexistem — "hybrid scanning mode". Esta distinção é importante para a questão arquitetural do objetivo 1.
 
 ---
 
@@ -21,7 +20,7 @@
 
 ### 1.1 Inspector v1 (legado)
 
-[FATO] O Amazon Inspector v1 (console legado: `inspector.amazonaws.com`, não `inspector2`) foi projetado em torno do modelo de **avaliações agendadas** com agent obrigatório:
+ O Amazon Inspector v1 (console legado: `inspector.amazonaws.com`, não `inspector2`) foi projetado em torno do modelo de **avaliações agendadas** com agent obrigatório:
 
 - **Agent obrigatório:** Era necessário instalar o Amazon Inspector Agent em cada instância EC2 a ser avaliada.
 - **Avaliações manuais:** O usuário criava "assessment targets" (grupos de instâncias via tags), "assessment templates" (conjunto de rules packages + duração), e agendava as execuções.
@@ -29,15 +28,15 @@
 - **Execução pontual:** O Inspector v1 fazia scans periódicos e discretos, não monitoramento contínuo. Uma instância lançada entre dois scans ficava sem cobertura até o próximo ciclo.
 - **Sem cobertura nativa de ECR ou Lambda.**
 
-[FATO] O Inspector v1 foi descontinuado. A AWS encerrou o suporte ao Inspector v1 em 18 de dezembro de 2023 — contas ainda usando v1 devem ter migrado para v2.
+ O Inspector v1 foi descontinuado. A AWS encerrou o suporte ao Inspector v1 em 18 de dezembro de 2023 — contas ainda usando v1 devem ter migrado para v2.
 
 ### 1.2 Inspector v2 — arquitectura atual
 
-[FATO] O Amazon Inspector v2 foi completamente redesenhado em torno de quatro princípios:
+ O Amazon Inspector v2 foi completamente redesenhado em torno de quatro princípios:
 
 **1. Auto-descoberta:** Quando ativado, o Inspector v2 descobre automaticamente todos os recursos elegíveis na conta (instâncias EC2, imagens ECR, funções Lambda). Não há configuração de "targets" ou "templates".
 
-**2. Scanning contínuo:** [FATO] O Inspector v2 não faz scans pontuais. Ele rescan automaticamente recursos em resposta a:
+**2. Scanning contínuo:**  O Inspector v2 não faz scans pontuais. Ele rescan automaticamente recursos em resposta a:
 - Instalação de novo pacote em uma instância EC2
 - Aplicação de patch
 - Publicação de novo CVE que afeta o recurso
@@ -46,7 +45,7 @@ Isso significa que uma instância recém-lançada começa a ser escaneada automa
 
 **3. Hybrid scanning para EC2 (correção ao plano):**
 
-[FATO] Confirmado na documentação oficial — quando você ativa EC2 scanning, o Inspector v2 habilita automaticamente o **hybrid scanning mode**:
+ Confirmado na documentação oficial — quando você ativa EC2 scanning, o Inspector v2 habilita automaticamente o **hybrid scanning mode**:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -64,9 +63,9 @@ Isso significa que uma instância recém-lançada começa a ser escaneada automa
 └─────────────────────────────────────────────────────────────┘
 ```
 
-[FATO] O caminho via EBS snapshot ("agentless scanning") permite escanear instâncias **sem SSM agent instalado** e até **instâncias paradas (stopped)**. Esta é a inovação arquitetural principal do v2 em relação ao v1.
+ O caminho via EBS snapshot ("agentless scanning") permite escanear instâncias **sem SSM agent instalado** e até **instâncias paradas (stopped)**. Esta é a inovação arquitetural principal do v2 em relação ao v1.
 
-**4. Cobertura expandida:** [FATO] Inspector v2 escaneia EC2, ECR container images, e Lambda functions — e adicionou Lambda code scanning e Code Security (IaC, dependências de aplicação) posteriormente.
+**4. Cobertura expandida:**  Inspector v2 escaneia EC2, ECR container images, e Lambda functions — e adicionou Lambda code scanning e Code Security (IaC, dependências de aplicação) posteriormente.
 
 ### 1.3 Tabela comparativa v1 vs v2
 
@@ -86,12 +85,12 @@ Isso significa que uma instância recém-lançada começa a ser escaneada automa
 
 ### 2.1 O que acontece ao ativar o Inspector v2
 
-[FATO] Confirmado na documentação oficial: quando você ativa o Inspector v2 pela primeira vez, a conta é automaticamente inscrita em **todos os scan types**:
+ Confirmado na documentação oficial: quando você ativa o Inspector v2 pela primeira vez, a conta é automaticamente inscrita em **todos os scan types**:
 - Amazon EC2 scanning (com hybrid mode habilitado por padrão)
 - Amazon ECR scanning
 - Lambda standard scanning
 
-[FATO] Lambda **code** scanning é opcional e deve ser ativado separadamente.
+ Lambda **code** scanning é opcional e deve ser ativado separadamente.
 
 ### 2.2 Habilitação via console
 
@@ -138,30 +137,30 @@ Resposta esperada de `batch-get-account-status`:
 ### 2.4 Comportamentos específicos por scan type
 
 **EC2 scanning:**
-[FATO] O Inspector escaneia instâncias para:
+ O Inspector escaneia instâncias para:
 - CVEs em pacotes de OS (Amazon Linux, Debian, RHEL, Ubuntu, CentOS etc.)
 - Vulnerabilidades em runtime languages instalados (Python, Node.js, Java etc.)
 - Network reachability — portas abertas acessíveis da internet
 - O Inspector rescan automaticamente quando: novo pacote instalado, patch aplicado, novo CVE publicado
 
-[FATO] Para o path via SSM, é necessário que o SSM agent esteja instalado e que a instância tenha conectividade com os endpoints do SSM. Para o path agentless via EBS snapshot, não há requisito de conectividade de rede — o Inspector opera diretamente no snapshot.
+ Para o path via SSM, é necessário que o SSM agent esteja instalado e que a instância tenha conectividade com os endpoints do SSM. Para o path agentless via EBS snapshot, não há requisito de conectividade de rede — o Inspector opera diretamente no snapshot.
 
 **ECR scanning:**
-[FATO] Ao ativar ECR scanning, o Inspector converte todos os repositórios privados de **basic scanning** para **enhanced scanning**. Basic scanning (nativo do ECR) usa apenas o banco de dados de vulnerabilidades open-source do ECR; enhanced scanning usa o banco de dados do Inspector.
+ Ao ativar ECR scanning, o Inspector converte todos os repositórios privados de **basic scanning** para **enhanced scanning**. Basic scanning (nativo do ECR) usa apenas o banco de dados de vulnerabilidades open-source do ECR; enhanced scanning usa o banco de dados do Inspector.
 
-[FATO] O Inspector escaneia imagens ECR que foram:
+ O Inspector escaneia imagens ECR que foram:
 - Pushed ou ativadas nos últimos 30 dias
 - Pulled nos últimos 90 dias
 
-[FATO] O monitoramento contínuo de uma imagem dura 90 dias por padrão (configurável). Uma imagem não acessada por mais de 90 dias deixa de ser monitorada ativamente.
+ O monitoramento contínuo de uma imagem dura 90 dias por padrão (configurável). Uma imagem não acessada por mais de 90 dias deixa de ser monitorada ativamente.
 
 **Lambda scanning:**
-[FATO] Lambda standard scanning:
+ Lambda standard scanning:
 - Escaneia todas as funções na conta quando o scan é ativado
 - Rescan automático quando a função é atualizada ou quando novo CVE é publicado
 - Escaneia pacotes de dependências (third-party libraries) incluídos na função
 
-[FATO] Lambda **code** scanning (opcional):
+ Lambda **code** scanning (opcional):
 - Escaneia vulnerabilidades no código da aplicação (não apenas dependências)
 - Avalia dependências de aplicação para CVEs
 - Ativar Lambda code scanning também ativa Lambda standard scanning
@@ -172,23 +171,23 @@ Resposta esperada de `batch-get-account-status`:
 
 ### 3.1 Estrutura de um finding Inspector v2
 
-[FATO] Um finding do Inspector v2 é um relatório detalhado sobre uma vulnerabilidade em um recurso. Os estados possíveis são:
+ Um finding do Inspector v2 é um relatório detalhado sobre uma vulnerabilidade em um recurso. Os estados possíveis são:
 - **Active** — vulnerabilidade detectada, não remediada
 - **Suppressed** — sujeito a uma suppression rule
 - **Closed** — vulnerabilidade remediada (o Inspector detecta automaticamente a remediação)
 
-[FATO] Comportamentos de ciclo de vida confirmados na doc:
+ Comportamentos de ciclo de vida confirmados na doc:
 - Recurso deletado/terminado → findings fechados automaticamente, **deletados após 3 dias**
 - Finding fechado por outro motivo → **deletado após 30 dias**
 - Inspector desabilitado → findings removidos após **24 horas**
-- [FATO] O Inspector **reabre** um finding remediado dentro de 7 dias se o problema reaparecer
+-  O Inspector **reabre** um finding remediado dentro de 7 dias se o problema reaparecer
 
 ### 3.2 O Inspector Score vs. CVSS base score
 
 Este é o campo mais importante para entender — e o que diferencia o Inspector v2 de scanners tradicionais.
 
 **CVSS base score (NVD):**
-[FATO] O CVSS (Common Vulnerability Scoring System) base score é calculado pelo NVD (National Vulnerability Database) com base em características intrínsecas da vulnerabilidade:
+ O CVSS (Common Vulnerability Scoring System) base score é calculado pelo NVD (National Vulnerability Database) com base em características intrínsecas da vulnerabilidade:
 
 ```
 CVSS base score = f(
@@ -203,10 +202,10 @@ CVSS base score = f(
 )
 ```
 
-[FATO] Confirmado na doc: o CVSS base score é estático — reflete a vulnerabilidade em abstrato, sem considerar o ambiente específico onde ela existe.
+ Confirmado na doc: o CVSS base score é estático — reflete a vulnerabilidade em abstrato, sem considerar o ambiente específico onde ela existe.
 
 **Amazon Inspector Score:**
-[FATO] O Inspector Score é calculado correlacionando o CVSS base score com dados do **ambiente de computação específico** do recurso:
+ O Inspector Score é calculado correlacionando o CVSS base score com dados do **ambiente de computação específico** do recurso:
 
 ```
 Inspector Score = CVSS base score
@@ -216,7 +215,7 @@ Inspector Score = CVSS base score
     - Contexto de deployment do recurso
 ```
 
-[FATO] Confirmado: "Amazon Inspector may lower the Inspector score of a finding for an EC2 instance if the vulnerability is exploitable over the network but no open network path to the internet is available from the instance."
+ Confirmado: "Amazon Inspector may lower the Inspector score of a finding for an EC2 instance if the vulnerability is exploitable over the network but no open network path to the internet is available from the instance."
 
 Exemplo prático:
 ```
@@ -229,16 +228,14 @@ Instância B — mesma CVE, mesma instância, mas sem rota de rede para a intern
   Inspector Score: 6.5 → MEDIUM (ajustado para baixo — exploit impossível remotamente)
 ```
 
-[FATO] O Inspector Score está em formato CVSS (0–10) e representa a severidade **contextualizada ao ambiente real**, não a severidade teórica máxima.
+ O Inspector Score está em formato CVSS (0–10) e representa a severidade **contextualizada ao ambiente real**, não a severidade teórica máxima.
 
 **CVSS 4.0:**
-[FATO] Confirmado na doc: devido a requisitos FedRAMP, o CVSS v3.1 é o score padrão. Quando disponível, um CVSS 4.0 base score é incluído nos metadados de vulnerabilidade. Você pode encontrar a fonte e versão do CVSS nos detalhes do finding.
+ Confirmado na doc: devido a requisitos FedRAMP, o CVSS v3.1 é o score padrão. Quando disponível, um CVSS 4.0 base score é incluído nos metadados de vulnerabilidade. Você pode encontrar a fonte e versão do CVSS nos detalhes do finding.
 
-[FATO] Inspector score NÃO está disponível para instâncias Ubuntu — o Ubuntu usa um sistema de severity rating customizado que difere do CVSS.
+ Inspector score NÃO está disponível para instâncias Ubuntu — o Ubuntu usa um sistema de severity rating customizado que difere do CVSS.
 
 ### 3.3 EPSS — Exploit Prediction Scoring System
-
-[INCERTO — verificar nas docs atuais; a informação abaixo é baseada no conhecimento de treinamento e no blog AWS de lançamento do Inspector v2] 
 
 O EPSS é um score produzido pela FIRST.org que estima a **probabilidade de exploração ativa** de uma CVE nos próximos 30 dias, baseado em evidências observadas (exploit databases, threat intelligence, darkweb activity). É expresso como um percentil (0–100%) ou probabilidade (0.0–1.0).
 
@@ -263,11 +260,11 @@ CVE-B: CVSS 6.5 (MEDIUM), EPSS 87% (percentil 95)
   → Deve ser prioridade imediata de patch
 ```
 
-[INCERTO] Se o Inspector v2 exibe o campo EPSS diretamente no console: verificar nas docs atuais em `findings-understanding-score.html` ou `findings-understanding-details.html`. A doc que consegui acessar menciona "exploitability data" como fator no Inspector Score, e lista ATT&CK TTPs, CISA KEV, Known malware e Last exploit date como campos de Vulnerability Intelligence — mas não cita EPSS explicitamente pelo nome na versão da página que obtive.
+ Se o Inspector v2 exibe o campo EPSS diretamente no console: verificar nas docs atuais em `findings-understanding-score.html` ou `findings-understanding-details.html`. A doc que consegui acessar menciona "exploitability data" como fator no Inspector Score, e lista ATT&CK TTPs, CISA KEV, Known malware e Last exploit date como campos de Vulnerability Intelligence — mas não cita EPSS explicitamente pelo nome na versão da página que obtive.
 
 ### 3.4 Vulnerability Intelligence
 
-[FATO] Além do score, o painel de Vulnerability Intelligence do finding mostra (confirmado na doc):
+ Além do score, o painel de Vulnerability Intelligence do finding mostra (confirmado na doc):
 
 | Campo | O que contém |
 |-------|-------------|
@@ -276,7 +273,7 @@ CVE-B: CVSS 6.5 (MEDIUM), EPSS 87% (percentil 95)
 | **Known malware** | Exploit kits e ferramentas conhecidos que exploram esta CVE |
 | **Last time reported** | Data do último exploit público conhecido |
 
-[FATO] CISA KEV (Known Exploited Vulnerabilities Catalog) é uma lista mantida pela Cybersecurity and Infrastructure Security Agency com evidências de exploração ativa. Uma CVE presente no KEV tem exploração documentada em ambiente real — independentemente do CVSS score.
+ CISA KEV (Known Exploited Vulnerabilities Catalog) é uma lista mantida pela Cybersecurity and Infrastructure Security Agency com evidências de exploração ativa. Uma CVE presente no KEV tem exploração documentada em ambiente real — independentemente do CVSS score.
 
 **Decisão de prioridade usando todos os sinais:**
 
@@ -297,9 +294,9 @@ CVE com CVSS 6.0 + Inspector Score 6.0 + CISA KEV + Known malware: Emotet
 
 ### 4.1 Como funciona
 
-[FATO] Confirmado na documentação oficial do Inspector: **se o Security Hub estiver ativado na conta, o Inspector automaticamente publica findings para o Security Hub via ASFF**. Não há configuração adicional necessária além de ter ambos os serviços habilitados.
+ Confirmado na documentação oficial do Inspector: **se o Security Hub estiver ativado na conta, o Inspector automaticamente publica findings para o Security Hub via ASFF**. Não há configuração adicional necessária além de ter ambos os serviços habilitados.
 
-[FATO] O fluxo é:
+ O fluxo é:
 ```
 Inspector detecta vulnerabilidade
        ↓
@@ -341,7 +338,7 @@ Campos relevantes de um finding Inspector no ASFF:
 }
 ```
 
-[FATO] O campo `Types` para findings de vulnerabilidade de pacote é `"Software and Configuration Checks/Vulnerabilities/CVE"` — diferente dos findings de rede que usam `"Software and Configuration Checks/Vulnerabilities/Network"`.
+ O campo `Types` para findings de vulnerabilidade de pacote é `"Software and Configuration Checks/Vulnerabilities/CVE"` — diferente dos findings de rede que usam `"Software and Configuration Checks/Vulnerabilities/Network"`.
 
 ### 4.3 Verificação de integração via CLI
 
@@ -357,7 +354,7 @@ aws securityhub list-enabled-products-for-import
 
 ### 4.4 Adições ao Inspector v2 não cobertas pelo plano
 
-[FATO] Desde o lançamento do Inspector v2, foram adicionados scan types que ampliam o escopo além dos 3 originais:
+ Desde o lançamento do Inspector v2, foram adicionados scan types que ampliam o escopo além dos 3 originais:
 
 **Lambda code scanning:** Escaneia vulnerabilidades no código da aplicação (não apenas dependências), integrado ao scan de Lambda functions. Ativação separada dos demais scan types.
 
